@@ -1,0 +1,74 @@
+services:
+   questionsapp:
+     build:
+       context: ./config/dev/
+       dockerfile: Dockerfile
+     container_name: questionsapp
+     environment:
+       - CELERY_BROKER_URL=redis://redis:6379/2
+       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+     volumes:
+       - ./:/usr/src/questionsapp/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/src/data:/usr/src/data/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/logs/questionsapp/:/usr/src/logs/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/attachments/:/usr/src/attachments/
+     expose:
+       - 8002
+     ports:
+       - 8002:8002
+     env_file:
+       - .env
+     restart: always
+     networks:
+       - default
+       - service-network
+     depends_on:
+       - questionsapp_celery
+     command: flask run -h 0.0.0.0 -p 8002
+
+   questionscron:
+     build:
+       context: ./config/dev/
+       dockerfile: Dockerfile
+     container_name: questionscron
+     volumes:
+       - ./:/usr/src/questionsapp/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/src/data:/usr/src/data/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/logs/questionsapp/:/usr/src/logs/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/attachments/:/usr/src/attachments/
+     restart: always
+     env_file:
+       - .env
+     networks:
+       - default
+       - service-network
+     command: cron -f
+
+   questionsapp_celery:
+     build:
+       context: ./config/dev/
+       dockerfile: Dockerfile
+     container_name: questionsapp_celery
+     volumes:
+       - ./:/usr/src/questionsapp/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/src/data:/usr/src/data/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/logs/questionsapp/:/usr/src/logs/
+       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/attachments/:/usr/src/attachments/
+     environment:
+       - CELERY_BROKER_URL=redis://redis:6379/2
+       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+     restart: always
+     env_file:
+       - .env
+     networks:
+       - default
+       - service-network
+     command: celery --app=celery_worker.celery worker --loglevel=DEBUG
+
+networks:
+  default:
+    driver: bridge
+
+  service-network:
+    name: service-network
+    external: true

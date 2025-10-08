@@ -1,0 +1,18 @@
+{% extends "base_webapp.html" %}
+
+{% block Title %}
+    <title>{{ data.title }}</title>
+{% endblock %}
+{% block CSS %}
+<link href="{{ data.app_css }}" rel="stylesheet">
+{% endblock %}
+
+{% block Content %}
+   <div id="questions-app">
+
+   </div>
+{% endblock %}
+
+{% block JS %}
+    <script type="text/javascript" src="{{ data.app_js }}"></script>
+{% endblock %}

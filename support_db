@@ -1,0 +1,291 @@
+CREATE EXTENSION pg_trgm;
+
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.modified_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+create table support_request
+(
+    id           bigserial primary key,
+    userid       integer default 0 not null references userpg on delete cascade,
+    created_at   timestamp with time zone default now() not null,
+    modified_at  timestamp with time zone default now() not null
+);
+
+CREATE INDEX id_index_support_request ON support_request(id);
+CREATE INDEX userid_index_support_request ON support_request(userid);
+CREATE INDEX id_to_userid_index_support_request ON support_request(id, userid);
+
+CREATE INDEX created_at_index_support_request on support_request(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_request on support_request(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_request on support_request(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_request on support_request(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_request
+    for each row
+execute procedure trigger_set_timestamp();
+
+
+create table support_text
+(
+    id           bigserial primary key,
+    support_id   integer default 0 not null references support_request on delete cascade,
+    text         text default '' not null,
+    created_at   timestamp with time zone default now() not null,
+    modified_at  timestamp with time zone default now() not null
+);
+
+CREATE INDEX id_index_support_text ON support_text(id);
+CREATE INDEX support_id_index_support_text ON support_text(support_id);
+CREATE INDEX id_to_support_id_index_support_text ON support_text(id, support_id);
+
+CREATE INDEX created_at_index_support_text on support_text(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_text on support_text(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_text on support_text(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_text on support_text(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_text
+    for each row
+execute procedure trigger_set_timestamp();
+
+create table support_itpoint_input
+(
+    id           bigserial primary key,
+    support_id   integer default 0 not null references support_request on delete cascade,
+    input        varchar(255) default '' not null,
+    created_at   timestamp with time zone default now() not null,
+    modified_at  timestamp with time zone default now() not null
+);
+
+CREATE INDEX id_index_support_itpoint_input ON support_itpoint_input(id);
+CREATE INDEX support_id_index_support_itpoint_input ON support_itpoint_input(support_id);
+CREATE INDEX id_to_support_id_index_support_itpoint_input ON support_itpoint_input(id, support_id);
+
+CREATE INDEX created_at_index_support_itpoint_input on support_itpoint_input(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_itpoint_input on support_itpoint_input(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_itpoint_input on support_itpoint_input(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_itpoint_input on support_itpoint_input(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_itpoint_input
+    for each row
+execute procedure trigger_set_timestamp();
+
+
+create table support_telegram_attach
+(
+    id           bigserial primary key,
+    support_id   integer default 0 not null references support_request on delete cascade,
+    uniqid       varchar(1000) default '' not null,
+    caption      text default '' not null,
+    type         varchar(255) default '' not null,
+    created_at   timestamp with time zone default now() not null,
+    modified_at  timestamp with time zone default now() not null,
+
+    unique(support_id, uniqid)
+);
+
+CREATE INDEX id_index_support_telegram_attach ON support_telegram_attach(id);
+CREATE INDEX support_id_index_support_telegram_attach ON support_telegram_attach(support_id);
+CREATE INDEX id_to_support_id_index_support_telegram_attach ON support_telegram_attach(id, support_id);
+
+CREATE INDEX uniqid_gin_index_support_telegram_attach ON support_telegram_attach using gin(uniqid gin_trgm_ops);
+CREATE INDEX path_gin_index_support_telegram_attach ON support_telegram_attach using gin(type gin_trgm_ops);
+
+CREATE INDEX created_at_index_support_telegram_attach on support_telegram_attach(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_telegram_attach on support_telegram_attach(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_telegram_attach on support_telegram_attach(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_telegram_attach on support_telegram_attach(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_telegram_attach
+    for each row
+execute procedure trigger_set_timestamp();
+
+
+create table support_problem
+(
+    id                 bigserial primary key,
+    support_id         integer default 0 not null references support_request on delete cascade,
+    global_id          varchar(500) default '' not null,
+    system_object_id   varchar(500) default '' not null,
+    created_at         timestamp with time zone default now() not null,
+    modified_at        timestamp with time zone default now() not null,
+
+    unique(support_id, global_id),
+    unique(support_id, system_object_id)
+);
+
+CREATE INDEX id_index_support_problem ON support_problem(id);
+CREATE INDEX support_id_index_support_problem ON support_problem(support_id);
+CREATE INDEX id_to_support_id_index_support_problem ON support_problem(id, support_id);
+
+CREATE INDEX uniqid_gin_index_support_problem ON support_problem using gin(global_id gin_trgm_ops);
+CREATE INDEX path_gin_index_support_problem ON support_problem using gin(system_object_id gin_trgm_ops);
+
+CREATE INDEX created_at_index_support_problem on support_problem(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_problem on support_problem(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_problem on support_problem(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_problem on support_problem(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_problem
+    for each row
+execute procedure trigger_set_timestamp();
+
+create table support_service
+(
+    id                 bigserial primary key,
+    support_id         integer default 0 not null references support_request on delete cascade,
+    global_id          varchar(500) default '' not null,
+    system_object_id   varchar(500) default '' not null,
+    created_at         timestamp with time zone default now() not null,
+    modified_at        timestamp with time zone default now() not null,
+
+    unique(support_id, global_id),
+    unique(support_id, system_object_id)
+);
+
+CREATE INDEX id_index_support_service ON support_service(id);
+CREATE INDEX support_id_index_support_service ON support_service(support_id);
+CREATE INDEX id_to_support_id_index_support_service ON support_service(id, support_id);
+
+CREATE INDEX uniqid_gin_index_support_service ON support_service using gin(global_id gin_trgm_ops);
+CREATE INDEX path_gin_index_support_service ON support_service using gin(system_object_id gin_trgm_ops);
+
+CREATE INDEX created_at_index_support_service on support_service(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_service on support_service(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_service on support_service(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_service on support_service(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_service
+    for each row
+execute procedure trigger_set_timestamp();
+
+
+create table support_unionrole
+(
+    id                 bigserial primary key,
+    support_id         integer default 0 not null references support_request on delete cascade,
+    unionrole_id       integer default 0 not null references unionrole on delete cascade,
+    created_at         timestamp with time zone default now() not null,
+    modified_at        timestamp with time zone default now() not null,
+
+    unique(support_id, unionrole_id)
+);
+
+CREATE INDEX id_index_support_unionrole ON support_unionrole(id);
+CREATE INDEX support_id_index_support_unionrole ON support_unionrole(support_id);
+CREATE INDEX unionrole_id_index_support_unionrole ON support_unionrole(unionrole_id);
+CREATE INDEX id_to_support_id_index_support_unionrole ON support_unionrole(id, support_id);
+CREATE INDEX id_to_unionrole_id_index_support_unionrole ON support_unionrole(id, unionrole_id);
+CREATE INDEX support_id_to_unionrole_id_index_support_unionrole ON support_unionrole(support_id, unionrole_id);
+
+CREATE INDEX created_at_index_support_unionrole on support_unionrole(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_unionrole on support_unionrole(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_unionrole on support_unionrole(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_unionrole on support_unionrole(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_unionrole
+    for each row
+execute procedure trigger_set_timestamp();
+
+create table support_attempt
+(
+    id                 bigserial primary key,
+    support_id         integer default 0 not null references support_request on delete cascade,
+    created_at         timestamp with time zone default now() not null,
+    modified_at        timestamp with time zone default now() not null
+);
+
+CREATE INDEX id_index_support_attempt ON support_attempt(id);
+CREATE INDEX support_id_index_support_attempt ON support_attempt(support_id);
+CREATE INDEX id_to_support_id_index_support_attempt ON support_attempt(id, support_id);
+
+CREATE INDEX created_at_index_support_attempt on support_attempt(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_attempt on support_attempt(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_attempt on support_attempt(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_attempt on support_attempt(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_attempt
+    for each row
+execute procedure trigger_set_timestamp();
+
+
+create table status_support
+(
+    id           bigserial primary key,
+    name         varchar(255) default '' not null,
+    db_name      varchar(255) default '' not null,
+    created_at   timestamp with time zone default now() not null,
+    modified_at  timestamp with time zone default now() not null,
+
+    unique(db_name)
+);
+
+CREATE INDEX id_index_status_support ON status_support(id);
+CREATE INDEX name_index_status_support ON status_support(name);
+CREATE INDEX name_index_desc_status_support ON status_support(name DESC);
+CREATE INDEX name_gin_index_status_support ON status_support using gin(name gin_trgm_ops);
+
+CREATE INDEX db_name_index_status_support ON status_support(db_name);
+CREATE INDEX db_name_index_desc_status_support ON status_support(db_name DESC);
+CREATE INDEX db_name_gin_index_status_support ON status_support using gin(db_name gin_trgm_ops);
+
+CREATE INDEX created_at_index_status_support on status_support(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_status_support on status_support(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_status_support on status_support(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_status_support on status_support(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on status_support
+    for each row
+execute procedure trigger_set_timestamp();
+
+create table support_to_status
+(
+    id           bigserial primary key,
+    support_id   integer default 0 not null references support_request on delete cascade,
+    status_id    integer default 0 not null references status_support on delete cascade,
+    created_at   timestamp with time zone default now() not null,
+    modified_at  timestamp with time zone default now() not null,
+
+    unique(support_id, status_id)
+
+);
+
+CREATE INDEX id_index_support_to_status ON support_to_status(id);
+CREATE INDEX support_id_index_support_to_status ON support_to_status(support_id);
+CREATE INDEX status_id_index_support_to_status ON support_to_status(status_id);
+CREATE INDEX support_id_to_status_id_index_support_to_status ON support_to_status(support_id, status_id);
+CREATE INDEX id_to_status_id_index_support_to_status ON support_to_status(id, status_id);
+CREATE INDEX id_to_support_id_index_support_to_status ON support_to_status(id, support_id);
+
+CREATE INDEX created_at_index_support_to_status on support_to_status(((created_at at time zone 'UTC')::date));
+CREATE INDEX created_at_index_desc_support_to_status on support_to_status(((created_at at time zone 'UTC')::date) desc);
+CREATE INDEX modified_at_index_support_to_status on support_to_status(((modified_at at time zone 'UTC')::date));
+CREATE INDEX modified_at_index_desc_support_to_status on support_to_status(((modified_at at time zone 'UTC')::date) desc);
+
+create trigger set_timestamp
+    before update
+    on support_to_status
+    for each row
+execute procedure trigger_set_timestamp();

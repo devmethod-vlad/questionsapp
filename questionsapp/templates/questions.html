@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block Title %}
+    <title>Вопросы/Ответы</title>
+{% endblock %}
+
+{% block CSS %}
+    <link href="{{ data.css_path }}" rel="stylesheet">
+{% endblock %}
+
+{% block Content %}
+    <div class="container" id="questions-app">
+	</div>
+{% endblock %}
+{% block JS %}
+    <script type="text/javascript" src="{{ data.js_path }}"></script>
+{% endblock %}

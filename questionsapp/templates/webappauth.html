@@ -1,0 +1,30 @@
+{% extends "base_webapp.html" %}
+
+{% block Title %}
+    <title>{{ data.title }}</title>
+{% endblock %}
+{% block CSS %}
+<link href="{{ data.app_css }}" rel="stylesheet">
+{% endblock %}
+
+{% block Content %}
+{% if data.no_params %}
+   <div class="edu-webapp-no-params">
+       {{ data.no_params_text }}
+   </div>
+{% else %}
+   {% if data.is_auth %}
+       <div class="edu-webapp-already-auth">
+           {{ data.already_auth_text }}
+       </div>
+   {% else %}
+       <div id="webapp-auth-container">
+
+       </div>
+   {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block JS %}
+    <script type="text/javascript" src="{{ data.app_js }}"></script>
+{% endblock %}

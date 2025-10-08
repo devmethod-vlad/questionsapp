@@ -1,0 +1,24 @@
+{% extends "base_webapp.html" %}
+
+{% block Title %}
+    <title>{{ data.title }}</title>
+{% endblock %}
+{% block CSS %}
+<link href="{{ data.app_css }}" rel="stylesheet">
+{% endblock %}
+
+{% block Content %}
+{% if data.invalid %}
+   <div class="webapp-anonym-question-invalid">
+       {{ data.invalid_text }}
+   </div>
+{% else %}
+   <div id="anonym-question-view-app">
+
+   </div>
+{% endif %}
+{% endblock %}
+
+{% block JS %}
+    <script type="text/javascript" src="{{ data.app_js }}"></script>
+{% endblock %}

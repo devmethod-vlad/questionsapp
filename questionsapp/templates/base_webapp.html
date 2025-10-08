@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    {% block Title %}
+    {% endblock %}
+    {% block CSS %}
+    {% endblock %}
+    <script type="text/javascript" src="{{ data.webapp_js }}"></script>
+</head>
+<body>
+<div class="main-container">
+    {% block Content %}
+    {% endblock %}
+</div>
+{% block JS %}
+{% endblock %}
+</body>
+</html>
