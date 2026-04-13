@@ -1,12 +1,12 @@
-"""Versioned API endpoints for FastAPI migration with contract compatibility."""
+"""Question API endpoints migrated to FastAPI with legacy-compatible contracts."""
 
 from __future__ import annotations
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, UploadFile
-from fastapi.responses import PlainTextResponse
 
+from app.repositories.legacy_session import LegacySessionContext, get_legacy_session_context
 from app.responses.builders import error, ok, paginated_questions
 from app.schemas.payloads import (
     BotExcelPayload,
@@ -17,19 +17,15 @@ from app.schemas.payloads import (
     SpaceRolesPayload,
     StatisticPayload,
 )
-from app.services.legacy_bridge import FileCompat, LegacyServiceAdapter
+from app.services.legacy import LegacyAdminHandlers, LegacyQuestionHandlers
 
 router = APIRouter()
-
-
-@router.get("/test/")
-def test_endpoint() -> PlainTextResponse:
-    return PlainTextResponse("Test success!!!")
 
 
 @router.get("/questions_api/")
 def questions_api(
     query: Annotated[QuestionsAPIQuery, Depends()],
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
 ):
     try:
         parsed_page_count = int(query.page_count)
@@ -44,7 +40,7 @@ def questions_api(
     except ValueError:
         return error("Invalid pagination parameters; must be integers.", status_code=400)
 
-    records, total_count = LegacyServiceAdapter.get_questions_api(
+    records, total_count = LegacyQuestionHandlers.questions_api(
         page=parsed_page,
         page_count=parsed_page_count,
         public_only=(query.publicorder == "1"),
@@ -53,53 +49,63 @@ def questions_api(
 
 
 @router.post("/questionslist/")
-def questions_list(payload: QuestionsListPayload):
-    response, status_code = LegacyServiceAdapter.form_questions_list(payload.model_dump())
+def questions_list(
+    payload: QuestionsListPayload,
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+):
+    response, status_code = LegacyQuestionHandlers.questions_list(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
 @router.post("/spaceandroles/")
-def space_roles(payload: SpaceRolesPayload):
+def space_roles(
+    payload: SpaceRolesPayload,
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+):
     if not payload.action:
         return error("WARN: No action param")
     if payload.action != "getrolesbyspace":
         return error("WARN: No valid action param")
 
-    response, status_code = LegacyServiceAdapter.get_roles(payload.model_dump())
+    response, status_code = LegacyAdminHandlers.space_roles(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
 @router.post("/saveorupdate/")
 async def save_or_update(
     form_data: Annotated[SaveOrUpdatePayload, Depends(SaveOrUpdatePayload.from_form)],
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
     question_files: list[UploadFile] = File(default_factory=list, alias="question_files[]"),
     answer_files: list[UploadFile] = File(default_factory=list, alias="answer_files[]"),
 ):
     if not form_data.action:
         return error("WARN: No action param")
 
-    payload = form_data.model_dump()
-    payload.update(
-        {
-        "question_files": [FileCompat(f) for f in question_files],
-        "answer_files": [FileCompat(f) for f in answer_files],
-        }
+    response, status_code = LegacyQuestionHandlers.save_or_update(
+        action=form_data.action,
+        payload=form_data.model_dump(),
+        question_files=question_files,
+        answer_files=answer_files,
     )
-
-    response, status_code = LegacyServiceAdapter.save_or_update(form_data.action, payload)
     return ok(response, status_code=status_code)
 
 
 @router.post("/service/")
-def service(payload: ServicePayload):
+def service(
+    payload: ServicePayload,
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+):
     if not payload.action:
         return error("WARN: No action param")
-    response, status_code = LegacyServiceAdapter.service_action(payload.model_dump(exclude_none=False))
+    response, status_code = LegacyAdminHandlers.service(payload.model_dump(exclude_none=False))
     return ok(response, status_code=status_code)
 
 
 @router.post("/statistic/")
-def statistic(payload: StatisticPayload):
+def statistic(
+    payload: StatisticPayload,
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+):
     if not payload.action:
         return error("WARN: No action param")
     if payload.action != "getbotstat":
@@ -107,14 +113,17 @@ def statistic(payload: StatisticPayload):
     if not payload.botstatskind or payload.botimeperiod not in (7, 30):
         return error("WARN: No params")
 
-    response, status_code = LegacyServiceAdapter.statistic(payload.model_dump())
+    response, status_code = LegacyAdminHandlers.statistic(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
 @router.post("/botexcel/")
-def botexcel(payload: BotExcelPayload):
+def botexcel(
+    payload: BotExcelPayload,
+    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+):
     if not payload.action or payload.chatid in (None, ""):
         return error("WARN: No params")
 
-    response, status_code = LegacyServiceAdapter.botexcel(payload.model_dump())
+    response, status_code = LegacyAdminHandlers.botexcel(payload.model_dump())
     return ok(response, status_code=status_code)
