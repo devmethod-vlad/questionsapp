@@ -1,10 +1,12 @@
-from celery import shared_task
+from io import BytesIO
+
 import pandas as pd
-import requests
+from celery import shared_task
 from flask import current_app as app
 from openpyxl import Workbook
-from io import BytesIO
 from openpyxl.utils.dataframe import dataframe_to_rows
+
+from app.integrations import TelegramGateway
 
 follower_sql = """
 select useminfo.emiaslogin as login,
@@ -17,6 +19,7 @@ join userpg on user_telegraminfo.userid = userpg.id where emiaslogin is not null
 
 @shared_task()
 def get_followers_excel(chatid):
+    telegram = TelegramGateway(token=app.config["TEL_TOKEN"])
     try:
         df = pd.read_sql(follower_sql, app.config['SQLALCHEMY_DATABASE_URI'])
         df = df.drop_duplicates(subset=['login'], keep='first')
@@ -32,18 +35,13 @@ def get_followers_excel(chatid):
 
         out = BytesIO()
         wb.save(out)
-        out.name = "followers.xlsx"
         out.seek(0)
         wb.close()
-        url = 'https://api.telegram.org/bot' + app.config['TEL_TOKEN'] + '/sendDocument?chat_id={}'.format(chatid)
-        requests.post(url, files={"document": out})
+        telegram.send_document(chat_id=chatid, document=out, filename="followers.xlsx")
 
     except Exception as e:
         print(str(e))
-        method = "sendMessage"
-        url = f"https://api.telegram.org/bot{app.config['TEL_TOKEN']}/{method}"
-        data = {"chat_id": chatid,
-                "text": '🚫 <b>При запросе файла произошла ошибка! Попробуйте позже или создайте заявку для решения проблемы.</b>',
-                'parse_mode': 'html'}
-        requests.post(url, data=data)
-
+        telegram.send_message(
+            chat_id=chatid,
+            text="🚫 <b>При запросе файла произошла ошибка! Попробуйте позже или создайте заявку для решения проблемы.</b>",
+        )

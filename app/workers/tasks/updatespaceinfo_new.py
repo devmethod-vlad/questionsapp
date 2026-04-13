@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 import logging, sys
+import unicodedata as U, re
 
 import requests
 import pandas as pd
@@ -13,6 +14,7 @@ from sqlalchemy.orm import Session
 from celery import shared_task
 from celery.signals import after_setup_logger
 
+from app.integrations import ConfluenceGateway
 from database import db
 from questionsapp.models import (
     Spaces,
@@ -30,7 +32,6 @@ from supp_db.supp_connection import dsn
 # ==========
 NULL_SPACE_KEY = "nullspacekey"
 NULL_SPACE_TITLE = "Не распределено"
-REQUEST_TIMEOUT = 20
 LOG_PREFIX = "[SpaceInfoUpdate] "
 
 F_PUBLISHED = "Опубликовано на Viewport"
@@ -58,6 +59,13 @@ def setup_celery_logger(logger, *args, **kwargs):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+
+def normalize_text(s: str) -> str:
+    s = U.normalize('NFKC', s)  # совместимая нормализация (склеит составные и приведёт совместимые формы)
+    s = s.replace('\u00A0', ' ').replace('\u202F', ' ').replace('\u2009', ' ')  # NBSP/узкие пробелы -> обычный
+    s = ''.join(ch for ch in s if U.category(ch) != 'Cf')  # убрать форматные (в т.ч. zero-width)
+    s = re.sub(r'\s+', ' ', s).strip()  # схлопнуть пробелы по краям и внутри
+    return s
 
 # =========================
 # Утилиты и обертки сессии
@@ -98,10 +106,11 @@ def get_supp_roles() -> Dict[int, str]:
 def fetch_confluence_spaceinfo() -> List[Dict[str, Any]]:
     try:
         url = app.config["CONFLUENCE_SPACEINFO_PAGE"]
-        headers = {"Authorization": f"Bearer {app.config['IAC_BOT_TOKEN']}"}
-        resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-        body_html = resp.json()["body"]["storage"]["value"]
+        payload = ConfluenceGateway(
+            base_url=app.config["CONFLUENCE_URL"],
+            bearer_token=app.config["IAC_BOT_TOKEN"],
+        ).get_storage_page(url=url)
+        body_html = payload["body"]["storage"]["value"]
 
         soup = BeautifulSoup(body_html, "lxml")
         table = soup.find("table")
@@ -207,7 +216,7 @@ def ensure_null_space(session: Session) -> Spaces:
         )
     else:
         # Поддерживать title актуальным
-        if null_space.title != NULL_SPACE_TITLE:
+        if normalize_text(null_space.title) != normalize_text(NULL_SPACE_TITLE):
             old_title = null_space.title
             null_space.title = NULL_SPACE_TITLE
             safe_commit(session)
@@ -219,7 +228,6 @@ def ensure_null_space(session: Session) -> Spaces:
 
 def sync_spaces(session: Session, spaces_dict: Dict[str, str], null_space: Spaces) -> None:
     existing: List[Spaces] = session.query(Spaces).all()
-    existing_keys = {s.spacekey for s in existing}
     to_delete = [s for s in existing if s.spacekey not in spaces_dict and s.spacekey != NULL_SPACE_KEY]
     for ex in to_delete:
         orders = session.query(OrderSpace).filter(OrderSpace.spaceid == ex.id).all()
@@ -246,7 +254,7 @@ def sync_spaces(session: Session, spaces_dict: Dict[str, str], null_space: Space
                 f"Добавлено пространство: id={new_space.id} spacekey={key} title={title}"
             )
         else:
-            if space.title != title:
+            if normalize_text(space.title) != normalize_text(title):
                 old_title = space.title
                 space.title = title
                 safe_commit(session)
@@ -276,7 +284,7 @@ def sync_bot_spaces(session: Session, bot_spaces_dict: Dict[str, str]) -> None:
                 f"Добавлен BotSpace: id={new_bspace.id} spacekey={key} title={title}"
             )
         else:
-            if bspace.title != title:
+            if normalize_text(bspace.title) != normalize_text(title):
                 old_title = bspace.title
                 bspace.title = title
                 safe_commit(session)
@@ -381,7 +389,7 @@ def sync_unionroles_supp(
                 else:
                     continue
             else:
-                if role_name and role.name != role_name:
+                if role_name and normalize_text(role.name) != normalize_text(role_name):
                     old_name = role.name
                     role.name = role_name
                     logger.info(

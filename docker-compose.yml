@@ -65,7 +65,7 @@ services:
      networks:
        - default
        - service-network
-     command: celery --app=celery_worker.celery worker --loglevel=DEBUG
+     command: celery --app=app.workers.celery_worker.celery worker --loglevel=DEBUG
 
    questionscron:
      build:

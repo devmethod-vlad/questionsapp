@@ -10,7 +10,7 @@ from questionsapp.models import OrderSpace, AnonymOrder, AnonymOrderInfo, UserBa
 from questionsapp.models import AnswerTelegramAttachment, Attachment, AnswerAttachment
 from questionsapp.models import TelegramAttachment, SyncAttachments, OrderAttachment
 from questionsapp.models import OrderTelegramAttachment, UserTelegramInfo, OrderPublic, AppConfig
-from tasks.publicorder import publicOrder
+from app.workers.tasks.publicorder import publicOrder
 
 def exec_action(action, orderid, userid):
     # try:
