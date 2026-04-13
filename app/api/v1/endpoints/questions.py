@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from app.repositories.legacy_session import LegacySessionContext, get_legacy_session_context
+from app.db.session import RequestSessionContext, get_request_session_context
 from app.responses.builders import error, ok, paginated_questions
 from app.schemas.payloads import (
     BotExcelPayload,
@@ -18,6 +18,7 @@ from app.schemas.payloads import (
     StatisticPayload,
 )
 from app.services.admin_service import AdminService
+from app.services.dependencies import get_questions_service
 from app.services.questions_service import QuestionsService
 
 router = APIRouter()
@@ -26,7 +27,7 @@ router = APIRouter()
 @router.get("/questions_api/")
 def questions_api(
     query: Annotated[QuestionsAPIQuery, Depends()],
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    questions_service: Annotated[QuestionsService, Depends(get_questions_service)],
 ):
     try:
         parsed_page_count = int(query.page_count)
@@ -41,7 +42,7 @@ def questions_api(
     except ValueError:
         return error("Invalid pagination parameters; must be integers.", status_code=400)
 
-    records, total_count = QuestionsService.get_public_questions(
+    records, total_count = questions_service.get_public_questions(
         page=parsed_page,
         page_count=parsed_page_count,
         public_only=(query.publicorder == "1"),
@@ -52,7 +53,7 @@ def questions_api(
 @router.post("/questionslist/")
 def questions_list(
     payload: QuestionsListPayload,
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     response, status_code = QuestionsService.get_questions_list(payload.model_dump())
     return ok(response, status_code=status_code)
@@ -61,7 +62,7 @@ def questions_list(
 @router.post("/spaceandroles/")
 def space_roles(
     payload: SpaceRolesPayload,
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action:
         return error("WARN: No action param")
@@ -75,7 +76,7 @@ def space_roles(
 @router.post("/saveorupdate/")
 async def save_or_update(
     form_data: Annotated[SaveOrUpdatePayload, Depends(SaveOrUpdatePayload.from_form)],
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
     question_files: list[UploadFile] = File(default_factory=list, alias="question_files[]"),
     answer_files: list[UploadFile] = File(default_factory=list, alias="answer_files[]"),
 ):
@@ -94,7 +95,7 @@ async def save_or_update(
 @router.post("/service/")
 def service(
     payload: ServicePayload,
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action:
         return error("WARN: No action param")
@@ -105,7 +106,7 @@ def service(
 @router.post("/statistic/")
 def statistic(
     payload: StatisticPayload,
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action:
         return error("WARN: No action param")
@@ -121,7 +122,7 @@ def statistic(
 @router.post("/botexcel/")
 def botexcel(
     payload: BotExcelPayload,
-    _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
+    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action or payload.chatid in (None, ""):
         return error("WARN: No params")

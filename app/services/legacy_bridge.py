@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
+from app.repositories.questions_repository import QuestionsReadRepository
+
 from fastapi import UploadFile
 
 from questionsapp.services.appconfig.getappconfig import get_appconfig_info
@@ -106,13 +108,24 @@ class LegacyServiceAdapter:
     """Facade for legacy handlers callable from FastAPI routers."""
 
     @staticmethod
-    def get_questions_api(*, page: int, page_count: int, public_only: bool):
+    def get_questions_api(
+        *,
+        page: int,
+        page_count: int,
+        public_only: bool,
+        repository: QuestionsReadRepository,
+    ):
         try:
             get_legacy_flask_app()
         except LegacyRuntimeUnavailable:
             return [], 0
         with flask_context():
-            records, total_count = get_questions_api_data(page=page, page_count=page_count, public_only=public_only)
+            records, total_count = get_questions_api_data(
+                page=page,
+                page_count=page_count,
+                public_only=public_only,
+                repository=repository,
+            )
         return records, total_count
 
     @staticmethod

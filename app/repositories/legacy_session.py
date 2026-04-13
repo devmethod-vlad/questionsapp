@@ -1,36 +1,10 @@
-"""Legacy SQLAlchemy session lifecycle helpers for FastAPI requests.
+"""Backward-compatible import shim for request DB lifecycle dependency.
 
-Step 5 migration target:
-- explicit session dependency via ``Depends``;
-- deterministic cleanup under ASGI worker lifecycle;
-- rollback safety if an exception occurs before legacy service commits.
+Use :mod:`app.db.session` in new code.
 """
 
-from __future__ import annotations
+from app.db.session import RequestSessionContext, get_request_session_context
 
-from collections.abc import Generator
-
-from database import db
-
-
-class LegacySessionContext:
-    """Small helper to keep session lifecycle actions centralized."""
-
-    def rollback(self) -> None:
-        db.session.rollback()
-
-    def remove(self) -> None:
-        db.session.remove()
-
-
-def get_legacy_session_context() -> Generator[LegacySessionContext, None, None]:
-    """FastAPI dependency that provides per-request legacy session context."""
-
-    context = LegacySessionContext()
-    try:
-        yield context
-    except Exception:
-        context.rollback()
-        raise
-    finally:
-        context.remove()
+# Backward compatibility names used by existing routers.
+LegacySessionContext = RequestSessionContext
+get_legacy_session_context = get_request_session_context
