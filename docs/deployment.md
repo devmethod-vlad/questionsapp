@@ -25,7 +25,6 @@
 
 ## Рекомендуемые следующие шаги
 
-- Добавить `pydantic-settings` для централизованной схемы env-переменных перед миграцией на FastAPI.
 - Разделить env-файлы по окружениям (`.env.dev`, `.env.stage`, `.env.prod`) и использовать отдельные compose override-файлы.
 - Подключить проверку `.env` в prestart-скрипте (например, `python -m questionsapp.env_check`).
 
@@ -36,4 +35,4 @@
 - Dev: `uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
 - Prod: `uv run gunicorn -k uvicorn.workers.UvicornWorker app.main:app -b 0.0.0.0:8000`
 
-Старый Flask WSGI вход (`wsgi.py`) можно оставить временно для поэтапного cutover.
+Cutover завершён: основной HTTP запуск выполняется через FastAPI ASGI (`uvicorn app.main:app`).

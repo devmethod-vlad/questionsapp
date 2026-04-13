@@ -122,3 +122,17 @@ Changelog по совместимости (должен быть “no breaking 
   - rollback при необработанном исключении;
   - remove в `finally` для освобождения scoped session в ASGI-контексте.
 - Dependency подключена к мигрированным endpoint'ам, что фиксирует единое поведение cleanup между запросами.
+
+## Выполнено в текущей итерации (шаги 6, 7)
+
+### 6 Документация и эксплуатация
+- Сгенерирована и зафиксирована актуальная OpenAPI-спека: `docs/openapi.json`.
+- Добавлен migration checklist по endpoint-совместимости: `docs/migration_checklist.md`.
+- Добавлен compatibility changelog с фиксацией `no breaking changes`: `docs/compatibility_changelog.md`.
+
+### 7 Финальный cutover
+- Основной контейнерный HTTP runtime переключён на FastAPI ASGI (`uvicorn app.main:app`).
+- Временные роутер-адаптеры удалены, вместо них используется стабильный сервисный слой:
+  - `app/services/questions_service.py`
+  - `app/services/admin_service.py`
+- Legacy Flask app переведён на ленивую инициализацию в bridge-слое, чтобы FastAPI-инфраструктура (например, OpenAPI генерация) не зависела от Flask runtime при импортах.

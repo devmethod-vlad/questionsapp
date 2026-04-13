@@ -1,4 +1,4 @@
-# FastAPI migration architecture (Steps 2.1–2.3)
+# FastAPI migration architecture (Steps 2.1–2.3, 6, 7)
 
 ## Структура
 
@@ -8,7 +8,9 @@
 - `app/core/exceptions.py` — централизованная обработка ошибок.
 - `app/core/middleware.py` — `request-id` и request logging middleware.
 - `app/schemas/` — Pydantic-модели входных данных.
-- `app/services/legacy_bridge.py` — bridge к текущим Flask services без изменения бизнес-логики.
+- `app/services/legacy_bridge.py` — runtime bridge к текущим Flask services без изменения бизнес-логики.
+- `app/services/questions_service.py` — стабильный service layer для question-domain endpoint’ов.
+- `app/services/admin_service.py` — стабильный service layer для admin/support endpoint’ов.
 - `app/responses/builders.py` — совместимые response builders (legacy envelopes).
 - `app/repositories/` — место для будущего выноса data access слоя.
 
@@ -41,3 +43,9 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```bash
 gunicorn -k uvicorn.workers.UvicornWorker app.main:app -b 0.0.0.0:8000
 ```
+
+## Cutover status
+
+- Все API endpoint’ы из snapshot обслуживаются FastAPI.
+- Flask HTTP-слой выключен из основного runtime path.
+- Legacy Flask компоненты используются только как внутренний runtime bridge для бизнес-логики в переходный период.

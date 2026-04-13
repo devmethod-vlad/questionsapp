@@ -34,16 +34,26 @@ from questionsapp.services.roles.exitadmin import exit_admin
 from questionsapp.services.stats.bot.getnewuser import get_newuser_stat
 from questionsapp.services.stats.bot.getphrazestat import get_phraze_stat
 from questionsapp.services.stats.bot.phrazesperdaystat import get_perdayphrazes_stat
-from tasks.getfollowers import get_followers_excel
-from tasks.getsuppinfo import get_supp_info
-from tasks.updatespaceinfo import update_spaces_info
 
-legacy_flask_app = create_app(celery=questionsapp.celery)
+_legacy_flask_app = None
+
+
+def get_legacy_flask_app():
+    """Lazily construct Flask app required by legacy business services.
+
+    Lazy initialization keeps FastAPI-only operations (e.g. OpenAPI generation)
+    independent from runtime-only Flask env requirements.
+    """
+
+    global _legacy_flask_app
+    if _legacy_flask_app is None:
+        _legacy_flask_app = create_app(celery=questionsapp.celery)
+    return _legacy_flask_app
 
 
 @contextmanager
 def flask_context() -> Iterator[None]:
-    with legacy_flask_app.app_context():
+    with get_legacy_flask_app().app_context():
         yield
 
 
@@ -126,6 +136,8 @@ class LegacyServiceAdapter:
             if action == "exitadmin":
                 return as_jsonable(exit_admin(payload.get("userid")))
             if action == "updtspacesbyconfl":
+                from tasks.updatespaceinfo import update_spaces_info
+
                 update_spaces_info.delay()
                 return {"status": "ok"}, 200
 
@@ -150,25 +162,29 @@ class LegacyServiceAdapter:
             chatid = payload.get("chatid")
 
             _tg_post(
-                legacy_flask_app.config["TEL_SENDMESS_URL"],
+                get_legacy_flask_app().config["TEL_SENDMESS_URL"],
                 json_body={
                     "chat_id": chatid,
                     "text": "⚠ <b>Запрос принят. Ожидайте ваш файл с результатами</b>",
                     "parse_mode": "html",
                 },
                 timeout=(10.0, 40.0),
-                socks_proxy=legacy_flask_app.config["TEL_SOCKS_PROXY"],
+                socks_proxy=get_legacy_flask_app().config["TEL_SOCKS_PROXY"],
             )
 
             if action == "getfollowersexcel":
-                if legacy_flask_app.config["FLASK_ENV"] == "production":
+                from tasks.getfollowers import get_followers_excel
+
+                if get_legacy_flask_app().config["FLASK_ENV"] == "production":
                     get_followers_excel.delay(chatid)
                 else:
                     get_followers_excel(chatid)
                 return {"status": "ok"}, 200
 
             if action == "getsuppinfo":
-                if legacy_flask_app.config["FLASK_ENV"] == "production":
+                from tasks.getsuppinfo import get_supp_info
+
+                if get_legacy_flask_app().config["FLASK_ENV"] == "production":
                     get_supp_info.delay(chatid)
                 else:
                     get_supp_info(chatid)
