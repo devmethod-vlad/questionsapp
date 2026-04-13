@@ -1,35 +1,38 @@
 import os
+from urllib.parse import quote_plus
+
+from questionsapp.env import get_env
 
 path = os.getcwd()
 
-PG_USER = os.getenv('POSTGRES_USER')
-PG_PASS = os.getenv('POSTGRES_PASSWORD')
-PG_CONTAINER = os.getenv('PG_CONTAINER')
-PG_PORT= str(os.getenv('PG_PORT'))
-PG_BASE = os.getenv('PG_BASE')
+PG_USER = get_env('POSTGRES_USER', required=True)
+PG_PASS = get_env('POSTGRES_PASSWORD', required=True)
+PG_CONTAINER = get_env('PG_CONTAINER', required=True)
+PG_PORT = get_env('PG_PORT', '5432')
+PG_BASE = get_env('PG_BASE', required=True)
 
 class Config:
     """Base config."""
 
     MAX_CONTENT_LENGTH = 8 * 1000 * 1000
-    TEL_TOKEN = os.getenv('TEL_TOKEN')
-    TEL_INFO_CHAT = os.getenv('TEL_INFO_CHAT')
+    TEL_TOKEN = get_env('TEL_TOKEN')
+    TEL_INFO_CHAT = get_env('TEL_INFO_CHAT')
 
-    SUPP_DB_HOST = os.getenv('SUPP_DB_HOST')
-    SUPP_DB_PORT = os.getenv('SUPP_DB_PORT')
-    SUPP_DB_SID = os.getenv('SUPP_DB_SID')
-    SUPP_DB_USERNAME = os.getenv('SUPP_DB_USERNAME')
-    SUPP_DB_PASS = os.getenv('SUPP_DB_PASS')
+    SUPP_DB_HOST = get_env('SUPP_DB_HOST')
+    SUPP_DB_PORT = get_env('SUPP_DB_PORT')
+    SUPP_DB_SID = get_env('SUPP_DB_SID')
+    SUPP_DB_USERNAME = get_env('SUPP_DB_USERNAME')
+    SUPP_DB_PASS = get_env('SUPP_DB_PASS')
 
-    ETD2_DB_HOST = os.getenv('ETD2_DB_HOST')
-    ETD2_DB_PORT = os.getenv('ETD2_DB_PORT')
-    ETD2_DB_SERVICENAME = os.getenv('ETD2_DB_SERVICENAME')
-    ETD2_DB_USERNAME = os.getenv('ETD2_DB_USERNAME')
-    ETD2_DB_PASS = os.getenv('ETD2_DB_PASS')
+    ETD2_DB_HOST = get_env('ETD2_DB_HOST')
+    ETD2_DB_PORT = get_env('ETD2_DB_PORT')
+    ETD2_DB_SERVICENAME = get_env('ETD2_DB_SERVICENAME')
+    ETD2_DB_USERNAME = get_env('ETD2_DB_USERNAME')
+    ETD2_DB_PASS = get_env('ETD2_DB_PASS')
 
-    IAC_BOT_TOKEN = os.getenv('IAC_BOT_TOKEN')
+    IAC_BOT_TOKEN = get_env('IAC_BOT_TOKEN')
 
-    TEL_SOCKS_PROXY = os.getenv('TEL_SOCKS_PROXY')
+    TEL_SOCKS_PROXY = get_env('TEL_SOCKS_PROXY')
 
     SUPP_PARQUET_DATA_DIR = '/usr/src/data/suppinfo'
 
@@ -39,17 +42,20 @@ class Config:
 
     SUPP_ZIP_DATA_DIR = '/usr/src/data/suppinfo_zip'
 
-    SQLALCHEMY_DATABASE_URI = 'postgresql://'+PG_USER+':'+PG_PASS+'@'+PG_CONTAINER+':'+PG_PORT+'/'+PG_BASE
+    SQLALCHEMY_DATABASE_URI = (
+        f"postgresql://{quote_plus(PG_USER)}:{quote_plus(PG_PASS)}@"
+        f"{PG_CONTAINER}:{PG_PORT}/{PG_BASE}"
+    )
 
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
-    CONFLUENCE_URL = os.getenv('CONFLUENCE_BASE_URL')
-    CONFL_BOT_NAME = os.getenv('CONFLUENCE_BOT_NAME')
-    CONFL_BOT_PASS = os.getenv('CONFL_BOT_PASS')
+    CONFLUENCE_URL = get_env('CONFLUENCE_BASE_URL')
+    CONFL_BOT_NAME = get_env('CONFLUENCE_BOT_NAME')
+    CONFL_BOT_PASS = get_env('CONFL_BOT_PASS')
 
-    CONFLUENCE_SPACEINFO_PAGE = os.getenv('CONFLUENCE_SPACEINFO_PAGE')
+    CONFLUENCE_SPACEINFO_PAGE = get_env('CONFLUENCE_SPACEINFO_PAGE')
 
-    CONFLUENCE_PUBLIC_TESTPAGE_ID = os.getenv('CONFLUENCE_PUBLIC_TESTPAGE_ID')
+    CONFLUENCE_PUBLIC_TESTPAGE_ID = get_env('CONFLUENCE_PUBLIC_TESTPAGE_ID')
 
     TEST_DATA_PATH = '/usr/src/data/'
 
@@ -74,15 +80,15 @@ class Config:
     WAPPANONYMVIEWER_CSS_FOLDER = os.path.join(path, 'static/webappanonymviewer/css/')
     WAPPANONYMVIEWER_IMGS_FOLDER = os.path.join(path, 'static/webappanonymviewer/imgs/')
 
-    QUESTION_ATTACHMENTS = os.getenv('QUESTIONS_ATTACHMENTS')+'/orders/'
-    ANSWER_ATTACHMENTS = os.getenv('QUESTIONS_ATTACHMENTS')+'/answers/'
+    QUESTION_ATTACHMENTS = f"{get_env('QUESTIONS_ATTACHMENTS', required=True)}/orders/"
+    ANSWER_ATTACHMENTS = f"{get_env('QUESTIONS_ATTACHMENTS', required=True)}/answers/"
 
     TEL_SENDMESS_URL = f'https://api.telegram.org/bot{TEL_TOKEN}/sendMessage'
 
-    QUESTIONS_MAIN_PAGE=os.getenv('QUESTIONS_MAIN_PAGE')
+    QUESTIONS_MAIN_PAGE = get_env('QUESTIONS_MAIN_PAGE')
 
 
-    URL_PREFIX = os.getenv('QUESTIONSAPP_URL_PREFIX')
+    URL_PREFIX = get_env('QUESTIONSAPP_URL_PREFIX', '/eduportal/questions')
 
     BASE_ROLE = {
         'admin': {
@@ -174,7 +180,7 @@ class Config:
         'pdfExtensions': ['pdf']
     }
 
-    DEFAULT_FORMAT = os.getenv('DEFAULT_FORMAT')
+    DEFAULT_FORMAT = get_env('DEFAULT_FORMAT', 'UTF-8')
     
 
 class ProdConfig(Config):

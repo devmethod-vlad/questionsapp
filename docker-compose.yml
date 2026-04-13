@@ -1,9 +1,9 @@
 services:
    questionsapp:
      build:
-       context: ./config/
-       dockerfile: Dockerfile
-       target: base
+       context: .
+       dockerfile: config/Dockerfile
+       target: dev
        args:
          https_proxy: ${HTTPS_PROXY}
          http_proxy: ${HTTP_PROXY}
@@ -11,13 +11,14 @@ services:
          HTTP_PROXY: ${HTTP_PROXY}
      container_name: questionsapp
      environment:
-       - CELERY_BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
-       - CELERY_RESULT_BACKEND=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       CELERY_BROKER_URL: redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       CELERY_RESULT_BACKEND: redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       PYTHONUNBUFFERED: "1"
      volumes:
-       - ${APP_DIR_HOST}:${APP_DIR_CONTR}
-       - ${LOGS_DIR_HOST}:${LOGS_DIR_CONTR}
-       - ${ATTACH_DIR_HOST}:${ATTACH_DIR_CONTR}
-       - ${DATA_DIR_HOST}:${DATA_DIR_CONTR}
+       - ${APP_DIR_HOST:?err}:${APP_DIR_CONTR:?err}
+       - ${LOGS_DIR_HOST:?err}:${LOGS_DIR_CONTR:?err}
+       - ${ATTACH_DIR_HOST:?err}:${ATTACH_DIR_CONTR:?err}
+       - ${DATA_DIR_HOST:?err}:${DATA_DIR_CONTR:?err}
      expose:
        - 8002
      ports:
@@ -25,6 +26,12 @@ services:
      env_file:
        - .env
      restart: always
+     healthcheck:
+       test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(); s.connect(('127.0.0.1', 8002)); s.close()\""]
+       interval: 30s
+       timeout: 10s
+       retries: 3
+       start_period: 20s
      networks:
        - default
        - service-network
@@ -34,9 +41,9 @@ services:
 
    questionsapp_celery:
      build:
-       context: ./config/
-       dockerfile: Dockerfile
-       target: base
+       context: .
+       dockerfile: config/Dockerfile
+       target: dev
        args:
          https_proxy: ${HTTPS_PROXY}
          http_proxy: ${HTTP_PROXY}
@@ -44,13 +51,14 @@ services:
          HTTP_PROXY: ${HTTP_PROXY}
      container_name: questionsapp_celery
      environment:
-       - CELERY_BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
-       - CELERY_RESULT_BACKEND=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       CELERY_BROKER_URL: redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       CELERY_RESULT_BACKEND: redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       PYTHONUNBUFFERED: "1"
      volumes:
-       - ${APP_DIR_HOST}:${APP_DIR_CONTR}
-       - ${LOGS_DIR_HOST}:${LOGS_DIR_CONTR}
-       - ${ATTACH_DIR_HOST}:${ATTACH_DIR_CONTR}
-       - ${DATA_DIR_HOST}:${DATA_DIR_CONTR}
+       - ${APP_DIR_HOST:?err}:${APP_DIR_CONTR:?err}
+       - ${LOGS_DIR_HOST:?err}:${LOGS_DIR_CONTR:?err}
+       - ${ATTACH_DIR_HOST:?err}:${ATTACH_DIR_CONTR:?err}
+       - ${DATA_DIR_HOST:?err}:${DATA_DIR_CONTR:?err}
      restart: always
      env_file:
        - .env
@@ -61,8 +69,8 @@ services:
 
    questionscron:
      build:
-       context: ./config/
-       dockerfile: Dockerfile
+       context: .
+       dockerfile: config/Dockerfile
        target: cron
        args:
          https_proxy: ${HTTPS_PROXY}
@@ -71,10 +79,10 @@ services:
          HTTP_PROXY: ${HTTP_PROXY}
      container_name: questionscron
      volumes:
-       - ${APP_DIR_HOST}:${APP_DIR_CONTR}
-       - ${LOGS_DIR_HOST}:${LOGS_DIR_CONTR}
-       - ${ATTACH_DIR_HOST}:${ATTACH_DIR_CONTR}
-       - ${DATA_DIR_HOST}:${DATA_DIR_CONTR}
+       - ${APP_DIR_HOST:?err}:${APP_DIR_CONTR:?err}
+       - ${LOGS_DIR_HOST:?err}:${LOGS_DIR_CONTR:?err}
+       - ${ATTACH_DIR_HOST:?err}:${ATTACH_DIR_CONTR:?err}
+       - ${DATA_DIR_HOST:?err}:${DATA_DIR_CONTR:?err}
      restart: always
      env_file:
        - .env

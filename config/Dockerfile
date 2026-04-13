@@ -1,4 +1,5 @@
-FROM python:3.10-slim-bookworm AS base
+FROM python:3.11-slim-bookworm AS base
+COPY --from=ghcr.io/astral-sh/uv:0.7.22 /uv /uvx /bin/
 
 ARG http_proxy
 ARG https_proxy
@@ -15,11 +16,13 @@ WORKDIR /usr/src/questionsapp/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    TZ=Europe/Moscow
+    TZ=Europe/Moscow \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    PATH="/usr/src/questionsapp/.venv/bin:$PATH"
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-RUN python -m pip install --upgrade pip
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates nano cron supervisor wget alien libaio1 \
@@ -37,12 +40,17 @@ ENV LD_LIBRARY_PATH="/usr/lib/oracle/19.8/client64/lib:${LD_LIBRARY_PATH}"
 
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml pyproject.toml
+RUN uv sync --no-dev --no-install-project
 ENV http_proxy='' https_proxy='' HTTP_PROXY='' HTTPS_PROXY=''
 
-FROM base AS cron
-COPY root /etc/cron.d/
-RUN chown root:root /etc/cron.d/root
-RUN crontab /etc/cron.d/root
+FROM base AS dev
+
+FROM base AS prod
+COPY . .
+
+FROM prod AS cron
+RUN cp /usr/src/questionsapp/config/root /etc/cron.d/root \
+    && chown root:root /etc/cron.d/root \
+    && crontab /etc/cron.d/root
 CMD ["./entry.sh"]
