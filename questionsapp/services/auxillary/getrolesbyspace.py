@@ -1,5 +1,5 @@
 from questionsapp.models import UnionRole, SpaceUnionRole, UserUnionRole
-from questionsapp.services.roles.getrole import get_role
+from app.services.legacy.roles.getrole import get_role
 from flask import current_app as app
 
 def get_roles_by_space(spaceid, roleid, userid):

@@ -1,8 +1,3 @@
-from flask import current_app as app
+"""Backward-compatible import shim for migrated role helper."""
 
-def get_role(roleid):
-    for item in app.config['BASE_ROLE']:
-        if app.config['BASE_ROLE'][item]['id'] == int(roleid):
-            return item
-    return None
-
+from app.services.legacy.roles.getrole import *  # noqa: F401,F403
