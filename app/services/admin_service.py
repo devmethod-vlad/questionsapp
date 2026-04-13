@@ -1,4 +1,4 @@
-"""Adapters for admin/support utility endpoints."""
+"""Admin/support application services used by FastAPI routers."""
 
 from __future__ import annotations
 
@@ -7,21 +7,21 @@ from typing import Any
 from app.services.legacy_bridge import LegacyServiceAdapter
 
 
-class LegacyAdminHandlers:
-    """Facade used by FastAPI routers for non-question domain actions."""
+class AdminService:
+    """Application service for non-question support/admin actions."""
 
     @staticmethod
-    def space_roles(payload: dict[str, Any]):
+    def get_space_roles(payload: dict[str, Any]):
         return LegacyServiceAdapter.get_roles(payload)
 
     @staticmethod
-    def service(payload: dict[str, Any]):
+    def execute_service_action(payload: dict[str, Any]):
         return LegacyServiceAdapter.service_action(payload)
 
     @staticmethod
-    def statistic(payload: dict[str, Any]):
+    def get_statistics(payload: dict[str, Any]):
         return LegacyServiceAdapter.statistic(payload)
 
     @staticmethod
-    def botexcel(payload: dict[str, Any]):
+    def build_bot_excel(payload: dict[str, Any]):
         return LegacyServiceAdapter.botexcel(payload)

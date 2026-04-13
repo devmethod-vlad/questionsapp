@@ -17,7 +17,8 @@ from app.schemas.payloads import (
     SpaceRolesPayload,
     StatisticPayload,
 )
-from app.services.legacy import LegacyAdminHandlers, LegacyQuestionHandlers
+from app.services.admin_service import AdminService
+from app.services.questions_service import QuestionsService
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ def questions_api(
     except ValueError:
         return error("Invalid pagination parameters; must be integers.", status_code=400)
 
-    records, total_count = LegacyQuestionHandlers.questions_api(
+    records, total_count = QuestionsService.get_public_questions(
         page=parsed_page,
         page_count=parsed_page_count,
         public_only=(query.publicorder == "1"),
@@ -53,7 +54,7 @@ def questions_list(
     payload: QuestionsListPayload,
     _: Annotated[LegacySessionContext, Depends(get_legacy_session_context)],
 ):
-    response, status_code = LegacyQuestionHandlers.questions_list(payload.model_dump())
+    response, status_code = QuestionsService.get_questions_list(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
@@ -67,7 +68,7 @@ def space_roles(
     if payload.action != "getrolesbyspace":
         return error("WARN: No valid action param")
 
-    response, status_code = LegacyAdminHandlers.space_roles(payload.model_dump())
+    response, status_code = AdminService.get_space_roles(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
@@ -81,7 +82,7 @@ async def save_or_update(
     if not form_data.action:
         return error("WARN: No action param")
 
-    response, status_code = LegacyQuestionHandlers.save_or_update(
+    response, status_code = QuestionsService.save_or_update(
         action=form_data.action,
         payload=form_data.model_dump(),
         question_files=question_files,
@@ -97,7 +98,7 @@ def service(
 ):
     if not payload.action:
         return error("WARN: No action param")
-    response, status_code = LegacyAdminHandlers.service(payload.model_dump(exclude_none=False))
+    response, status_code = AdminService.execute_service_action(payload.model_dump(exclude_none=False))
     return ok(response, status_code=status_code)
 
 
@@ -113,7 +114,7 @@ def statistic(
     if not payload.botstatskind or payload.botimeperiod not in (7, 30):
         return error("WARN: No params")
 
-    response, status_code = LegacyAdminHandlers.statistic(payload.model_dump())
+    response, status_code = AdminService.get_statistics(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
@@ -125,5 +126,5 @@ def botexcel(
     if not payload.action or payload.chatid in (None, ""):
         return error("WARN: No params")
 
-    response, status_code = LegacyAdminHandlers.botexcel(payload.model_dump())
+    response, status_code = AdminService.build_bot_excel(payload.model_dump())
     return ok(response, status_code=status_code)
