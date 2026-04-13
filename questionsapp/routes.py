@@ -2,15 +2,15 @@ from flask import current_app as app, render_template, jsonify
 from .extensions import limiter
 from pytz import timezone
 import requests
-from questionsapp.services.questions.get_questions_api import get_questions_api_data
+from app.services.legacy.questions.get_questions_api import get_questions_api_data
 from questionsapp.models import UserTelegramInfo, OrderMess, AnonymOrder
 from flask import request, send_from_directory
 from questionsapp.services.questionslist.formquestionslist import form_questions_list, find_question_in_list
 from questionsapp.services.auxillary.getrolesbyspace import get_roles_by_space
-from questionsapp.services.questions.savequestion import save_question
-from questionsapp.services.questions.execaction import exec_action
-from questionsapp.services.questions.savecombine import save_combine
-from questionsapp.services.questions.saveanonymquestion import save_anonym_question
+from app.services.legacy.questions.savequestion import save_question
+from app.services.legacy.questions.execaction import exec_action
+from app.services.legacy.questions.savecombine import save_combine
+from app.services.legacy.questions.saveanonymquestion import save_anonym_question
 from questionsapp.services.attachments.changeatttachpublicity import change_attach_publicity
 from questionsapp.services.attachments.deleteattachment import delete_attachment
 from questionsapp.services.roles.createnewadmin import create_new_admin

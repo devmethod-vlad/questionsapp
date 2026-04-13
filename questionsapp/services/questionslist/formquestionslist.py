@@ -3,7 +3,7 @@ import pandas as pd
 # from pandasgui import show
 from flask import current_app as app
 from questionsapp.services.auxillary.readsqltmpfile import read_sql_tmpfile
-from questionsapp.services.roles.getrole import get_role
+from app.services.legacy.roles.getrole import get_role
 from questionsapp.services.status.transformstatuslist import tranform_status_list
 from supp_db.queries.questions import sql_questions, sql_questions_service, select_status,select_count
 from supp_db.queries.questions import feedback_query, select_space, sql_find_question, public_query
