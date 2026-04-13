@@ -1,7 +1,7 @@
 from database import db
 from questionsapp.models import UserManualInfo, UserBaseRole, AccessToken
 import bcrypt, secrets
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from questionsapp.services.user.userinfo import set_user_info
 
 

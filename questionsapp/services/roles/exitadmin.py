@@ -1,6 +1,6 @@
 from questionsapp.models import UserBaseRole
 from database import db
-from flask import current_app as app
+from app.core.legacy_runtime import app
 
 def exit_admin(userid):
     if userid:

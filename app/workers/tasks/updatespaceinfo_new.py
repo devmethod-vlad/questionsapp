@@ -8,7 +8,7 @@ import requests
 import pandas as pd
 import cx_Oracle
 from bs4 import BeautifulSoup
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from celery import shared_task

@@ -1,6 +1,6 @@
 from database import db
 import bcrypt
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from questionsapp.models import UserWikiInfo, UserManualInfo, UserBaseRole
 
 def create_new_admin(edulogin, adminlogin, adminpass):

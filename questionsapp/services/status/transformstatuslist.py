@@ -1,4 +1,4 @@
-from flask import current_app as app
+from app.core.legacy_runtime import app
 
 def tranform_status_list(status_name_list):
     status_id_list = []

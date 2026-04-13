@@ -3,7 +3,7 @@ import re
 
 import markdown
 from celery import shared_task
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from pytz import timezone
 from sqlalchemy import and_, desc
 

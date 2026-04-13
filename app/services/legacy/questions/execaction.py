@@ -4,7 +4,7 @@ from database import db
 import os
 import json
 from sqlalchemy import desc
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from questionsapp.models import AnswerMess, OrderMess, OrderStatus, OrdersInWork, TelegramTempMess
 from questionsapp.models import OrderSpace, AnonymOrder, AnonymOrderInfo, UserBaseRole
 from questionsapp.models import AnswerTelegramAttachment, Attachment, AnswerAttachment

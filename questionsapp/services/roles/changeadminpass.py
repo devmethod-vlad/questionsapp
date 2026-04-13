@@ -1,6 +1,6 @@
 from database import db
 import bcrypt
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from questionsapp.models import UserManualInfo
 
 def change_admin_pass(userid, adminpass):

@@ -3,7 +3,7 @@ from questionsapp.models import OrderMess, OrderStatus, OrderSpace, UserBaseRole
 from questionsapp.models import AppConfig, OrdersInWork, AnswerMess, UserTelegramInfo, Attachment, AnonymOrder
 from questionsapp.models import TelegramTempMess
 from questionsapp.services.auxillary.telegram import _tg_post
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from database import db
 from app.services.legacy.roles.getrole import get_role
 

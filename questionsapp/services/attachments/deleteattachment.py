@@ -3,7 +3,7 @@ import os
 from questionsapp.models import Attachment, OrderAttachment, SyncAttachments
 from questionsapp.models import TelegramAttachment, OrderTelegramAttachment
 from questionsapp.models import AnswerAttachment, AnswerTelegramAttachment
-from flask import current_app as app
+from app.core.legacy_runtime import app
 
 def delete_attachment(attach_target, attachid, orderid, userid):
 

@@ -6,7 +6,7 @@ signature and return format expected by legacy bridge.
 
 from __future__ import annotations
 
-from flask import current_app
+from app.core.legacy_runtime import app
 
 from app.repositories.questions_repository import QuestionsReadRepository
 
@@ -36,5 +36,5 @@ def get_questions_api_data(
         page=page,
         page_count=page_count,
         public_only=public_only,
-        url_prefix=current_app.config.get("URL_PREFIX", ""),
+        url_prefix=app.config.get("URL_PREFIX", ""),
     )

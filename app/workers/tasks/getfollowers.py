@@ -2,7 +2,7 @@ from io import BytesIO
 
 import pandas as pd
 from celery import shared_task
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 

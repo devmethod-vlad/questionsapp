@@ -6,7 +6,7 @@ from questionsapp.models import AppConfig, AnswerMess, UserTelegramInfo, Attachm
 from questionsapp.models import OrderAttachment, SpaceUnionRole, UnionRole, UserBaseRole, SpaceUnionRoleActive
 from questionsapp.models import TelegramTempMess, FeedbackQuestion
 from questionsapp.services.auxillary.telegram import _tg_post
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from pytz import timezone
 from app.services.legacy.roles.getrole import get_role
 

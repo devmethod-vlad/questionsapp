@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 # from pandasgui import show
-from flask import current_app as app
+from app.core.legacy_runtime import app
 from questionsapp.services.auxillary.readsqltmpfile import read_sql_tmpfile
 from app.services.legacy.roles.getrole import get_role
 from questionsapp.services.status.transformstatuslist import tranform_status_list
