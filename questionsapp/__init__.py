@@ -22,7 +22,13 @@ celery=make_celery()
 
 
 def create_app(**kwargs):
-    """Construct the core application."""
+    """Construct legacy Flask application context for background/bridge usage.
+
+    Notes:
+    - FastAPI is the only HTTP runtime entrypoint.
+    - Legacy Flask routes/templates were removed during cleanup.
+    - Flask app is kept only as a compatibility container for config/DB context.
+    """
     app = Flask(__name__)
 
     app.config['JSON_AS_ASCII'] = False
@@ -42,6 +48,4 @@ def create_app(**kwargs):
     CORS(app)
     db.init_app(app)
 
-    with app.app_context():
-        from . import routes
-        return app
+    return app
