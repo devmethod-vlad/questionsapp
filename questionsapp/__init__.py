@@ -6,6 +6,7 @@ from .celery_utils import init_celery
 from celery import Celery
 from database import db
 import os
+from .env import get_env_bool
 
 
 class Utf8JSONProvider(DefaultJSONProvider):
@@ -30,7 +31,7 @@ def create_app(**kwargs):
 
     limiter.init_app(app)
 
-    if int(os.getenv('PROD')) == 1:
+    if get_env_bool('PROD'):
         app.config.from_object('config.ProdConfig')
     else:
         app.config.from_object('config.DevConfig')
