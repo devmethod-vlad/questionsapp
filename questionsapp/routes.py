@@ -23,9 +23,9 @@ from questionsapp.services.roles.enteradmin import enter_admin
 from questionsapp.services.appconfig.getappconfig import get_appconfig_info
 from questionsapp.services.roles.exitadmin import exit_admin
 from questionsapp.services.auxillary.telegram import _tg_post
-from tasks.getfollowers import get_followers_excel
-from tasks.updatespaceinfo import update_spaces_info
-from tasks.getsuppinfo import get_supp_info
+from app.workers.tasks.getfollowers import get_followers_excel
+from app.workers.tasks.updatespaceinfo import update_spaces_info
+from app.workers.tasks.getsuppinfo import get_supp_info
 
 east = timezone('Europe/Moscow')
 

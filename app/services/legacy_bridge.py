@@ -190,7 +190,7 @@ class LegacyServiceAdapter:
             if action == "exitadmin":
                 return as_jsonable(exit_admin(payload.get("userid")))
             if action == "updtspacesbyconfl":
-                from tasks.updatespaceinfo import update_spaces_info
+                from app.workers.tasks.updatespaceinfo import update_spaces_info
 
                 update_spaces_info.delay()
                 return {"status": "ok"}, 200
@@ -235,7 +235,7 @@ class LegacyServiceAdapter:
             )
 
             if action == "getfollowersexcel":
-                from tasks.getfollowers import get_followers_excel
+                from app.workers.tasks.getfollowers import get_followers_excel
 
                 if get_legacy_flask_app().config["FLASK_ENV"] == "production":
                     get_followers_excel.delay(chatid)
@@ -244,7 +244,7 @@ class LegacyServiceAdapter:
                 return {"status": "ok"}, 200
 
             if action == "getsuppinfo":
-                from tasks.getsuppinfo import get_supp_info
+                from app.workers.tasks.getsuppinfo import get_supp_info
 
                 if get_legacy_flask_app().config["FLASK_ENV"] == "production":
                     get_supp_info.delay(chatid)

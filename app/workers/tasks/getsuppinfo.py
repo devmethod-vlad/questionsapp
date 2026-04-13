@@ -1,11 +1,13 @@
-from celery import shared_task
+import os
+from io import BytesIO
+
 import pandas as pd
-import requests
+from celery import shared_task
 from flask import current_app as app
 from openpyxl import Workbook
-from io import BytesIO
 from openpyxl.utils.dataframe import dataframe_to_rows
-import os
+
+from app.integrations import TelegramGateway
 
 def check_parquet():
     response = {'status': False, 'filename': ''}
@@ -26,6 +28,8 @@ def get_supp_info(chatid):
 
     # print("get_supp_info function")
     send_error = False
+
+    telegram = TelegramGateway(token=app.config["TEL_TOKEN"])
 
     try:
         check_resp = check_parquet()
@@ -49,11 +53,9 @@ def get_supp_info(chatid):
 
             out = BytesIO()
             wb.save(out)
-            out.name = "supp.xlsx"
             out.seek(0)
             wb.close()
-            url = 'https://api.telegram.org/bot' + app.config['TEL_TOKEN'] + '/sendDocument?chat_id={}'.format(chatid)
-            req = requests.post(url, files={"document": out})
+            req = telegram.send_document(chat_id=chatid, document=out, filename="supp.xlsx")
 
             answer = req.json()
 
@@ -71,10 +73,7 @@ def get_supp_info(chatid):
         send_error = True
 
     if send_error:
-
-        method = "sendMessage"
-        url = f"https://api.telegram.org/bot{app.config['TEL_TOKEN']}/{method}"
-        data = {"chat_id": chatid,
-                "text": '🚫 <b>При запросе файла произошла ошибка! Попробуйте позже или создайте заявку для решения проблемы.</b>',
-                'parse_mode': 'html'}
-        requests.post(url, data=data)
+        telegram.send_message(
+            chat_id=chatid,
+            text="🚫 <b>При запросе файла произошла ошибка! Попробуйте позже или создайте заявку для решения проблемы.</b>",
+        )

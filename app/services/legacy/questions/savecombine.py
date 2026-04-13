@@ -3,7 +3,7 @@ from questionsapp.models import AppConfig, OrderPublic, UserBaseRole
 from app.services.legacy.questions.savequestion import save_question
 from app.services.legacy.questions.saveanswer import save_answer
 from app.services.legacy.roles.getrole import get_role
-from tasks.publicorder import publicOrder
+from app.workers.tasks.publicorder import publicOrder
 import os
 
 def save_combine(params):

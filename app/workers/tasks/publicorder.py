@@ -2,13 +2,12 @@ import os
 import re
 
 import markdown
-import requests
-from atlassian import Confluence
 from celery import shared_task
 from flask import current_app as app
 from pytz import timezone
 from sqlalchemy import and_, desc
 
+from app.integrations import ConfluenceGateway
 from database import db
 from questionsapp.models import (
     AnswerAttachment,
@@ -111,9 +110,11 @@ def _set_public_active(value):
 
 
 def _create_confluence_client():
-    session = requests.Session()
-    session.headers.update({'Authorization': f"Bearer {app.config['IAC_BOT_TOKEN']}"})
-    return Confluence(url=app.config['CONFLUENCE_URL'], session=session)
+    gateway = ConfluenceGateway(
+        base_url=app.config["CONFLUENCE_URL"],
+        bearer_token=app.config["IAC_BOT_TOKEN"],
+    )
+    return gateway.create_client()
 
 
 def _strip_html(value):
