@@ -2,6 +2,7 @@ import os, requests, json
 from questionsapp.models import OrderMess, OrderStatus, OrderSpace, UserBaseRole, AnswerAttachment, AnonymOrderInfo
 from questionsapp.models import AppConfig, OrdersInWork, AnswerMess, UserTelegramInfo, Attachment, AnonymOrder
 from questionsapp.models import TelegramTempMess
+from questionsapp.services.auxillary.telegram import _tg_post
 from flask import current_app as app
 from database import db
 from questionsapp.services.roles.getrole import get_role
@@ -171,9 +172,22 @@ def save_answer(params):
                                 [{"text": "👁 В веб-версии", "web_app": {
                                     "url": app.config['WEB_APP_ORDERSHOWER'] + "?webappquestionid=" + str(orderid)}}],
                             ]})
-                            req = requests.post(app.config['TEL_SENDMESS_URL'],
-                                          json={'chat_id': anon_quest_info.tlgmid, 'text': message,
-                                                'reply_markup': markup, 'parse_mode': 'HTML'})
+                            # req = requests.post(app.config['TEL_SENDMESS_URL'],
+                            #               json={'chat_id': anon_quest_info.tlgmid, 'text': message,
+                            #                     'reply_markup': markup, 'parse_mode': 'HTML'})
+
+                            req = _tg_post(
+                                app.config['TEL_SENDMESS_URL'],
+                                json_body={
+                                    'chat_id': anon_quest_info.tlgmid,
+                                    'text': message,
+                                    'reply_markup': markup,
+                                    'parse_mode': 'HTML'
+                                },
+                                timeout=(10.0, 40.0),
+                                socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                            )
+
                             send_tel_notify = 'sent'
 
                             send_resp = req.json()
@@ -210,9 +224,22 @@ def save_answer(params):
                                       "callback_data": "ShowDetails-1-" + str(check_status.statusid) + "-" + str(
                                           orderid) + "-💡-myAnsweredOrders-" + str(order_space_rec.spaceid) + "-1"}],
                                 ]})
-                                req = requests.post(app.config['TEL_SENDMESS_URL'],
-                                              json={'chat_id': check_tel_info.tlgmid, 'text': message,
-                                                    'reply_markup': markup, 'parse_mode': 'HTML'})
+                                # req = requests.post(app.config['TEL_SENDMESS_URL'],
+                                #               json={'chat_id': check_tel_info.tlgmid, 'text': message,
+                                #                     'reply_markup': markup, 'parse_mode': 'HTML'})
+
+                                req = _tg_post(
+                                    app.config['TEL_SENDMESS_URL'],
+                                    json_body={
+                                        'chat_id': check_tel_info.tlgmid,
+                                        'text': message,
+                                        'reply_markup': markup,
+                                        'parse_mode': 'HTML'
+                                    },
+                                    timeout=(10.0, 40.0),
+                                    socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                                )
+
                                 send_tel_notify = 'sent'
 
                                 send_resp = req.json()

@@ -88,8 +88,8 @@ def get_supp_roles() -> Dict[int, str]:
     try:
         if app.config.get("FLASK_ENV") == "production":
             with cx_Oracle.connect(
-                user=app.config["SUPP_DB_USERNAME"],
-                password=app.config["SUPP_DB_PASS"],
+                user=app.config["ETD2_DB_USERNAME"],
+                password=app.config["ETD2_DB_PASS"],
                 dsn=dsn,
                 encoding="UTF-8",
                 nencoding="UTF-8",
@@ -106,8 +106,8 @@ def get_supp_roles() -> Dict[int, str]:
 def fetch_confluence_spaceinfo() -> List[Dict[str, Any]]:
     try:
         url = app.config["CONFLUENCE_SPACEINFO_PAGE"]
-        auth = (app.config["CONFL_BOT_NAME"], app.config["CONFL_BOT_PASS"])
-        resp = requests.get(url, auth=auth, timeout=REQUEST_TIMEOUT)
+        headers = {"Authorization": f"Bearer {app.config['IAC_BOT_TOKEN']}"}
+        resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         body_html = resp.json()["body"]["storage"]["value"]
 
@@ -469,7 +469,7 @@ def sync_unionroles_custom(
     max_retries=3,
     acks_late=False,
 )
-def update_spaces_info_ref(self) -> Dict[str, Any]:
+def update_spaces_info(self) -> Dict[str, Any]:
     session = get_session()
     try:
         supproles_dict = get_supp_roles()

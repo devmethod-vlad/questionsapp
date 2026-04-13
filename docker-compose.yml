@@ -1,17 +1,23 @@
 services:
    questionsapp:
      build:
-       context: ./config/dev/
+       context: ./config/
        dockerfile: Dockerfile
+       target: base
+       args:
+         https_proxy: ${HTTPS_PROXY}
+         http_proxy: ${HTTP_PROXY}
+         HTTPS_PROXY: ${HTTPS_PROXY}
+         HTTP_PROXY: ${HTTP_PROXY}
      container_name: questionsapp
      environment:
-       - CELERY_BROKER_URL=redis://redis:6379/2
-       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+       - CELERY_BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       - CELERY_RESULT_BACKEND=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
      volumes:
-       - ./:/usr/src/questionsapp/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/src/data:/usr/src/data/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/logs/questionsapp/:/usr/src/logs/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/attachments/:/usr/src/attachments/
+       - ${APP_DIR_HOST}:${APP_DIR_CONTR}
+       - ${LOGS_DIR_HOST}:${LOGS_DIR_CONTR}
+       - ${ATTACH_DIR_HOST}:${ATTACH_DIR_CONTR}
+       - ${DATA_DIR_HOST}:${DATA_DIR_CONTR}
      expose:
        - 8002
      ports:
@@ -26,37 +32,25 @@ services:
        - questionsapp_celery
      command: flask run -h 0.0.0.0 -p 8002
 
-   questionscron:
-     build:
-       context: ./config/dev/
-       dockerfile: Dockerfile
-     container_name: questionscron
-     volumes:
-       - ./:/usr/src/questionsapp/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/src/data:/usr/src/data/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/logs/questionsapp/:/usr/src/logs/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/attachments/:/usr/src/attachments/
-     restart: always
-     env_file:
-       - .env
-     networks:
-       - default
-       - service-network
-     command: cron -f
-
    questionsapp_celery:
      build:
-       context: ./config/dev/
+       context: ./config/
        dockerfile: Dockerfile
+       target: base
+       args:
+         https_proxy: ${HTTPS_PROXY}
+         http_proxy: ${HTTP_PROXY}
+         HTTPS_PROXY: ${HTTPS_PROXY}
+         HTTP_PROXY: ${HTTP_PROXY}
      container_name: questionsapp_celery
-     volumes:
-       - ./:/usr/src/questionsapp/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/src/data:/usr/src/data/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/logs/questionsapp/:/usr/src/logs/
-       - C:/Users/DevMethod/Documents/Projects/EDUPROJECT/attachments/:/usr/src/attachments/
      environment:
-       - CELERY_BROKER_URL=redis://redis:6379/2
-       - CELERY_RESULT_BACKEND=redis://redis:6379/2
+       - CELERY_BROKER_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+       - CELERY_RESULT_BACKEND=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+     volumes:
+       - ${APP_DIR_HOST}:${APP_DIR_CONTR}
+       - ${LOGS_DIR_HOST}:${LOGS_DIR_CONTR}
+       - ${ATTACH_DIR_HOST}:${ATTACH_DIR_CONTR}
+       - ${DATA_DIR_HOST}:${DATA_DIR_CONTR}
      restart: always
      env_file:
        - .env
@@ -64,6 +58,30 @@ services:
        - default
        - service-network
      command: celery --app=celery_worker.celery worker --loglevel=DEBUG
+
+   questionscron:
+     build:
+       context: ./config/
+       dockerfile: Dockerfile
+       target: cron
+       args:
+         https_proxy: ${HTTPS_PROXY}
+         http_proxy: ${HTTP_PROXY}
+         HTTPS_PROXY: ${HTTPS_PROXY}
+         HTTP_PROXY: ${HTTP_PROXY}
+     container_name: questionscron
+     volumes:
+       - ${APP_DIR_HOST}:${APP_DIR_CONTR}
+       - ${LOGS_DIR_HOST}:${LOGS_DIR_CONTR}
+       - ${ATTACH_DIR_HOST}:${ATTACH_DIR_CONTR}
+       - ${DATA_DIR_HOST}:${DATA_DIR_CONTR}
+     restart: always
+     env_file:
+       - .env
+     networks:
+       - default
+       - service-network
+     command: cron -f
 
 networks:
   default:

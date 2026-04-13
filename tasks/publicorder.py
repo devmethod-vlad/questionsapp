@@ -1,66 +1,42 @@
 import os
-from celery import shared_task
-import markdown
-from sqlalchemy import desc, and_
-from questionsapp.models import AppConfig, OrderSpace, OrderMess, AnswerMess, OrderAttachment, Attachment, AnswerAttachment, OrderStatus, Spaces, OrderPublic, OrderUnionRole, UnionRole
-from atlassian import Confluence
-from pytz import timezone
-from flask import current_app as app
 import re
+
+import markdown
+import requests
+from atlassian import Confluence
+from celery import shared_task
+from flask import current_app as app
+from pytz import timezone
+from sqlalchemy import and_, desc
+
 from database import db
+from questionsapp.models import (
+    AnswerAttachment,
+    AnswerMess,
+    AppConfig,
+    Attachment,
+    OrderAttachment,
+    OrderMess,
+    OrderPublic,
+    OrderSpace,
+    OrderStatus,
+    OrderUnionRole,
+    Spaces,
+    UnionRole,
+)
+
 
 east = timezone('Europe/Moscow')
-
-def setContenType(extension):
-    content_type = 'attachment'
-    if extension == '.pdf':
-        content_type = 'application/pdf'
-    if extension == '.xlsx':
-        content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    if extension == '.xls':
-        content_type = 'application/vnd.ms-excel'
-    if extension == '.doc':
-        content_type = 'application/msword'
-    if extension == '.docx':
-        content_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    return content_type
-
-@shared_task()
-def publicOrder(orderid):
-    appConfRecStart = AppConfig.query.order_by(desc('created_at')).limit(1).first()
-    appConfRecStart.ispublicactive = 1
-    db.session.commit()
-
-    try:
-        confluence = Confluence(url=app.config['CONFLUENCE_URL'], username=app.config['CONFL_BOT_NAME'],
-                                password=app.config['CONFL_BOT_PASS'])
-        orderSpace = OrderSpace.query.filter_by(orderid=int(orderid)).first()
-
-        spaceOrdersList = []
-        allSpaceOrders = OrderSpace.query.filter(OrderSpace.spaceid == orderSpace.spaceid).all()
-        checkOtherUnionRole = UnionRole.query.filter(
-            and_((UnionRole.name == 'Другое'), (UnionRole.emiasid == 0))).first()
-
-        roleOutFlag = False
-        for soItem in allSpaceOrders:
-            publicOrder = OrderPublic.query.filter_by(orderid=soItem.orderid).first()
-            orderStatus = OrderStatus.query.filter_by(orderid=soItem.orderid).first()
-            orderUnionRole = OrderUnionRole.query.filter_by(orderid=soItem.orderid).first()
-            if orderUnionRole is not None and publicOrder is not None:
-                if not orderUnionRole.unionroleid == checkOtherUnionRole.id:
-                    roleOutFlag = True
-            if not orderStatus.statusid in [1, 2, 5] and publicOrder:
-                answer = AnswerMess.query.filter_by(orderid=int(soItem.orderid)).first()
-                spaceOrdersList.append({"id": soItem.orderid, "answer_date": answer.modified_at})
-
-        spaceOrdersList.sort(key=lambda x: x['answer_date'], reverse=True)
-
-        spaceRec = Spaces.query.filter_by(id=orderSpace.spaceid).first()
-        space = spaceRec.spacekey
-
-        contentDict = {}
-
-        body = """<p>Если у вас есть вопрос, нажмите кнопку <strong>Задать вопрос</strong> в верхнем баннере и заполните открывшуюся форму. Ответ будет опубликован в таблице ниже.</p>
+HTML_TAG_RE = re.compile(r'<.*?>')
+CONTENT_TYPES = {
+    '.pdf': 'application/pdf',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xls': 'application/vnd.ms-excel',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+}
+QUESTION_TITLE = 'Вопросы и ответы'
+TABLE_BODY_START = """<p>Если у вас есть вопрос, нажмите кнопку <strong>Задать вопрос</strong> в верхнем баннере и заполните открывшуюся форму. Ответ будет опубликован в таблице ниже.</p>
 <p>Вводите ключевые слова в поле поиска над таблицей. В ней будут отображаться строки, содержащие совпадения.</p>
 <ac:structured-macro ac:macro-id="176c857e-c3b2-418a-b434-365310f8f68d" ac:name="hidden-fragment" ac:schema-version="1">
   <ac:rich-text-body>
@@ -110,165 +86,7 @@ def publicOrder(orderid):
     <p class="auto-cursor-target">
       <br/>
     </p>"""
-
-        body = body + """
-                                    <table class="wrapped tf-macro tablesorter" data-tf-ready="true">
-                                        <colgroup>
-                                            <col style="width: 29.0px;"/>
-                                            <col/>"""
-        if roleOutFlag:
-            body = body + """<col/>"""
-
-        body = body + """
-                                            <col/>
-                                            <col/>
-                                            <col/>
-                                        </colgroup>
-                                        <tbody>
-                                            <tr class="tablesorter-header">
-                                                <th>
-                                                    <br/>
-                                                </th>
-                                                <th style="vertical-align: middle;text-align: center;">Отметка времени</th>"""
-        if roleOutFlag:
-            body = body + """<th style="vertical-align: middle;text-align: center;">По роли или должности</th>"""
-        body = body + """
-                                                <th style="vertical-align: middle;text-align: center;">Вопрос</th>
-                                                <th style="vertical-align: middle;text-align: center;">№ в базе знаний</th>
-                                                <th style="vertical-align: middle;text-align: center;">Ответ</th>
-                                            </tr>
-                            """
-
-        for item in spaceOrdersList:
-            order = OrderMess.query.filter_by(id=int(item['id'])).first()
-            checkPublicOrder = OrderPublic.query.filter_by(orderid=int(item['id'])).first()
-            if checkPublicOrder:
-                localDict = {}
-                orderDict = {}
-                cleanorder = re.compile('<.*?>')
-                orderDict['text'] = re.sub(cleanorder, '', order.text)
-                # orderDict['text'] = order.text
-                orderDict['orderid'] = str(order.id)
-                orderDict['userid'] = order.userid
-                orderTime = order.created_at.astimezone(east)
-                orderDict['created_at'] = orderTime
-                attachments = []
-                attachs = OrderAttachment.query.filter_by(orderid=int(item['id'])).order_by(
-                    desc(OrderAttachment.created_at)).all()
-                if len(attachs) > 0:
-                    for atItem in attachs:
-                        attRec = Attachment.query.filter_by(id=atItem.attachid).first()
-                        if attRec.public == 1:
-                            attachments.append(
-                                app.config['QUESTION_ATTACHMENTS'] + str(order.userid) + '/' + str(
-                                    item['id']) + '/' + attRec.path)
-
-                orderDict['attachments'] = attachments
-
-                orderUnionRole = OrderUnionRole.query.filter_by(orderid=int(item['id'])).first()
-                if orderUnionRole is not None:
-                    if not orderUnionRole.unionroleid == checkOtherUnionRole.id:
-                        checkUnionRole = UnionRole.query.filter_by(id=orderUnionRole.unionroleid).first()
-                        orderDict['unionrole'] = checkUnionRole.name
-                    else:
-                        orderDict['unionrole'] = ''
-                else:
-                    orderDict['unionrole'] = ''
-
-                localDict['order'] = orderDict
-
-                answerDict = {}
-                answer = AnswerMess.query.filter_by(orderid=int(item['id'])).first()
-                cleananswer = re.compile('<.*?>')
-                answerDict['text'] = re.sub(cleananswer, '', answer.text)
-                # answerDict['text'] = answer.text
-                answerDict['userid'] = answer.userid
-                answerDict['created_at'] = answer.created_at
-                answerTime = answer.modified_at.astimezone(east)
-                answerDict['modified_at'] = answerTime.strftime("%d.%m.%Y")
-                answerattachs = []
-                answatts = AnswerAttachment.query.filter_by(answerid=answer.id).order_by(
-                    desc(AnswerAttachment.created_at)).all()
-                if len(answatts) > 0:
-                    for ansItem in answatts:
-                        attAnswRec = Attachment.query.filter_by(id=ansItem.attachid).first()
-                        if attAnswRec.public == 1:
-                            answerattachs.append(app.config['ANSWER_ATTACHMENTS'] + str(answer.userid) + '/' + str(
-                                item['id']) + '/' + attAnswRec.path)
-                answerDict['attachments'] = answerattachs
-                localDict['answer'] = answerDict
-                contentDict[item['id']] = localDict
-
-        questionTitle = 'Вопросы и ответы'
-
-        if app.config['FLASK_ENV'] == 'production':
-            page = confluence.get_page_by_title(space, questionTitle, 0, 1, expand="body.storage.value")
-        else:
-            page = confluence.get_page_by_id(app.config['CONFLUENCE_PUBLIC_TESTPAGE_ID'], expand="body.storage.value")
-
-        for j in range(0, 1000, 50):
-            resp = confluence.get_attachments_from_content(page['id'], start=j, limit=50, expand=None, filename=None,
-                                                           media_type=None)
-            if len(resp) > 0:
-                attachList = resp['results']
-                for delItem in attachList:
-                    confluence.delete_attachment(page['id'], delItem['title'], version=None)
-        for numKey, key in enumerate(contentDict, start=1):
-            body = body + """
-                                   <tr><td style="vertical-align: middle;text-align: left;"><span>""" + str(numKey) + """</span></td>
-                                   <td style="vertical-align: middle;text-align: left; min-width: 100px;"><div class="content-wrapper"><p>""" + \
-                   contentDict[key]['answer']['modified_at'] + """</p>
-                                   <ac:structured-macro ac:macro-id="29f83253-7ddd-44ec-b91e-2291e36fb998" ac:name="html" ac:schema-version="1">
-                                   <ac:plain-text-body><![CDATA[<span id='anchor-""" + spaceRec.spacekey + """-""" + \
-                   contentDict[key]['order']['orderid'] + """'></span>]]></ac:plain-text-body>
-                                  </ac:structured-macro></div></td>"""
-
-            if roleOutFlag:
-                # if not contentDict[key]['order']['unionrole'] == '':
-                body = body + """
-                                <td style="vertical-align: middle;text-align: left; min-width: 100px;"><p>""" + \
-                       contentDict[key]['order']['unionrole'] + """</p></td>
-                                """
-            body = body + """
-                                <td style="vertical-align: middle;text-align: left;"><div class="content-wrapper"><p>""" + \
-                   contentDict[key]['order']['text'] + """</p>"""
-            atOrderList = contentDict[key]['order']['attachments']
-            attTextBody = """"""
-            for num, filename in enumerate(atOrderList, start=1):
-                filesplit = os.path.splitext(filename)
-                extension = filesplit[1]
-                newFileName = 'Приложение-к-вопросу-' + str(numKey) + '-' + str(num) + extension
-                attTextBody = attTextBody + """
-                                <p>
-                                    <ac:link>
-                                        <ri:attachment ri:filename='""" + newFileName + """'/>
-                                    </ac:link>
-                                </p>"""
-                content_type = setContenType(extension)
-                confluence.attach_file(filename, name=newFileName, content_type=content_type, page_id=page['id'],
-                                       title=questionTitle, space=space)
-            body = body + attTextBody + """</div></td><td style="vertical-align: middle;"><div><p style="text-align: center;">""" + \
-                   contentDict[key]['order']['orderid'] + """</p></div></td>
-                                <td style="vertical-align: middle;text-align: left;"><div class="content-wrapper"><p>""" + markdown.markdown(
-                contentDict[key]['answer']['text']) + """</p></div>"""
-            atAnswerList = contentDict[key]['answer']['attachments']
-            attAnswTextBody = """"""
-            for num, filename in enumerate(atAnswerList, start=1):
-                filesplit = os.path.splitext(filename)
-                extension = filesplit[1]
-                newFileName = 'Приложение-к-ответу-' + str(numKey) + '-' + str(num) + extension
-                attAnswTextBody = attAnswTextBody + """
-                                            <p>
-                                                <ac:link>
-                                                    <ri:attachment ri:filename='""" + newFileName + """'/>
-                                                </ac:link>
-                                            </p>"""
-                content_type = setContenType(extension)
-                confluence.attach_file(filename, name=newFileName, content_type=content_type,
-                                       page_id=page['id'], title=questionTitle, space=space)
-            body = body + attAnswTextBody + """</td></tr>"""
-
-        body = body + """
+TABLE_BODY_END = """
                             </tbody>
                         </table>
                         <p class="auto-cursor-target">
@@ -280,17 +98,267 @@ def publicOrder(orderid):
   <br/>
 </p>
                         """
-        confluence.update_page(page['id'], questionTitle, body, type='page', representation='storage',
-                               minor_edit=False)
-        appConfRecEnd = AppConfig.query.order_by(desc('created_at')).limit(1).first()
-        appConfRecEnd.ispublicactive = 0
-        db.session.commit()
+
+
+def setContenType(extension):
+    return CONTENT_TYPES.get(extension, 'attachment')
+
+
+def _set_public_active(value):
+    app_conf = AppConfig.query.order_by(desc('created_at')).limit(1).first()
+    app_conf.ispublicactive = value
+    db.session.commit()
+
+
+def _create_confluence_client():
+    session = requests.Session()
+    session.headers.update({'Authorization': f"Bearer {app.config['IAC_BOT_TOKEN']}"})
+    return Confluence(url=app.config['CONFLUENCE_URL'], session=session)
+
+
+def _strip_html(value):
+    return re.sub(HTML_TAG_RE, '', value)
+
+
+def _build_attachment_url(base_url, user_id, order_id, path):
+    return f'{base_url}{user_id}/{order_id}/{path}'
+
+
+def _get_order_attachments(order_id, user_id):
+    attachments = []
+    attachs = OrderAttachment.query.filter_by(orderid=order_id).order_by(desc(OrderAttachment.created_at)).all()
+    for attach_item in attachs:
+        attachment = Attachment.query.filter_by(id=attach_item.attachid).first()
+        if attachment.public == 1:
+            attachments.append(
+                _build_attachment_url(app.config['QUESTION_ATTACHMENTS'], user_id, order_id, attachment.path)
+            )
+    return attachments
+
+
+def _get_answer_attachments(answer_id, order_id, user_id):
+    attachments = []
+    answer_attachments = AnswerAttachment.query.filter_by(answerid=answer_id).order_by(
+        desc(AnswerAttachment.created_at)
+    ).all()
+    for answer_attachment in answer_attachments:
+        attachment = Attachment.query.filter_by(id=answer_attachment.attachid).first()
+        if attachment.public == 1:
+            attachments.append(
+                _build_attachment_url(app.config['ANSWER_ATTACHMENTS'], user_id, order_id, attachment.path)
+            )
+    return attachments
+
+
+def _get_union_role_name(order_id, other_role_id):
+    order_union_role = OrderUnionRole.query.filter_by(orderid=order_id).first()
+    if order_union_role is None:
+        return ''
+    if order_union_role.unionroleid == other_role_id:
+        return ''
+
+    union_role = UnionRole.query.filter_by(id=order_union_role.unionroleid).first()
+    return union_role.name
+
+
+def _build_table_header(role_out_flag):
+    body = TABLE_BODY_START + """
+                                    <table class="wrapped tf-macro tablesorter" data-tf-ready="true">
+                                        <colgroup>
+                                            <col style="width: 29.0px;"/>
+                                            <col/>"""
+    if role_out_flag:
+        body += """<col/>"""
+
+    body += """
+                                            <col/>
+                                            <col/>
+                                            <col/>
+                                        </colgroup>
+                                        <tbody>
+                                            <tr class="tablesorter-header">
+                                                <th>
+                                                    <br/>
+                                                </th>
+                                                <th style="vertical-align: middle;text-align: center;">Отметка времени</th>"""
+    if role_out_flag:
+        body += """<th style="vertical-align: middle;text-align: center;">По роли или должности</th>"""
+
+    body += """
+                                                <th style="vertical-align: middle;text-align: center;">Вопрос</th>
+                                                <th style="vertical-align: middle;text-align: center;">№ в базе знаний</th>
+                                                <th style="vertical-align: middle;text-align: center;">Ответ</th>
+                                            </tr>
+                            """
+    return body
+
+
+def _get_public_page(confluence, space):
+    if app.config['FLASK_ENV'] == 'production':
+        return confluence.get_page_by_title(space, QUESTION_TITLE, 0, 1, expand='body.storage.value')
+    return confluence.get_page_by_id(app.config['CONFLUENCE_PUBLIC_TESTPAGE_ID'], expand='body.storage.value')
+
+
+def _delete_page_attachments(confluence, page_id):
+    for start in range(0, 1000, 50):
+        response = confluence.get_attachments_from_content(
+            page_id,
+            start=start,
+            limit=50,
+            expand=None,
+            filename=None,
+            media_type=None,
+        )
+        for attachment in response.get('results', []):
+            confluence.delete_attachment(page_id, attachment['title'], version=None)
+
+
+def _attach_files_and_render_links(confluence, page_id, files, prefix, row_number, question_title, space):
+    body = ''
+    for attachment_number, filename in enumerate(files, start=1):
+        _, extension = os.path.splitext(filename)
+        new_file_name = f'{prefix}-{row_number}-{attachment_number}{extension}'
+        body += f"""
+                                <p>
+                                    <ac:link>
+                                        <ri:attachment ri:filename='{new_file_name}'/>
+                                    </ac:link>
+                                </p>"""
+        content_type = setContenType(extension)
+        confluence.attach_file(
+            filename,
+            name=new_file_name,
+            content_type=content_type,
+            page_id=page_id,
+            title=question_title,
+            space=space,
+        )
+    return body
+
+
+def _build_content_dict(space_orders_list, other_role_id):
+    content_dict = {}
+
+    for item in space_orders_list:
+        order_id = int(item['id'])
+        order = OrderMess.query.filter_by(id=order_id).first()
+        public_order = OrderPublic.query.filter_by(orderid=order_id).first()
+        if not public_order:
+            continue
+
+        answer = AnswerMess.query.filter_by(orderid=order_id).first()
+        order_time = order.created_at.astimezone(east)
+        answer_time = answer.modified_at.astimezone(east)
+
+        local_dict = {
+            'order': {
+                'text': _strip_html(order.text),
+                'orderid': str(order.id),
+                'userid': order.userid,
+                'created_at': order_time,
+                'attachments': _get_order_attachments(order_id, order.userid),
+                'unionrole': _get_union_role_name(order_id, other_role_id),
+            },
+            'answer': {
+                'text': _strip_html(answer.text),
+                'userid': answer.userid,
+                'created_at': answer.created_at,
+                'modified_at': answer_time.strftime('%d.%m.%Y'),
+                'attachments': _get_answer_attachments(answer.id, order_id, answer.userid),
+            },
+        }
+        content_dict[item['id']] = local_dict
+
+    return content_dict
+
+
+@shared_task()
+def publicOrder(orderid):
+    _set_public_active(1)
+
+    try:
+        confluence = _create_confluence_client()
+        order_space = OrderSpace.query.filter_by(orderid=int(orderid)).first()
+
+        space_orders_list = []
+        all_space_orders = OrderSpace.query.filter(OrderSpace.spaceid == order_space.spaceid).all()
+        other_union_role = UnionRole.query.filter(and_((UnionRole.name == 'Другое'), (UnionRole.emiasid == 0))).first()
+
+        role_out_flag = False
+        for space_order in all_space_orders:
+            public_order = OrderPublic.query.filter_by(orderid=space_order.orderid).first()
+            order_status = OrderStatus.query.filter_by(orderid=space_order.orderid).first()
+            order_union_role = OrderUnionRole.query.filter_by(orderid=space_order.orderid).first()
+
+            if order_union_role is not None and public_order is not None:
+                if order_union_role.unionroleid != other_union_role.id:
+                    role_out_flag = True
+
+            if order_status.statusid not in [1, 2, 5] and public_order:
+                answer = AnswerMess.query.filter_by(orderid=int(space_order.orderid)).first()
+                space_orders_list.append({'id': space_order.orderid, 'answer_date': answer.modified_at})
+
+        space_orders_list.sort(key=lambda item: item['answer_date'], reverse=True)
+
+        space_record = Spaces.query.filter_by(id=order_space.spaceid).first()
+        space = space_record.spacekey
+        content_dict = _build_content_dict(space_orders_list, other_union_role.id)
+
+        body = _build_table_header(role_out_flag)
+        page = _get_public_page(confluence, space)
+        _delete_page_attachments(confluence, page['id'])
+
+        for row_number, key in enumerate(content_dict, start=1):
+            body += f"""
+                                   <tr><td style="vertical-align: middle;text-align: left;"><span>{row_number}</span></td>
+                                   <td style="vertical-align: middle;text-align: left; min-width: 100px;"><div class="content-wrapper"><p>{content_dict[key]['answer']['modified_at']}</p>
+                                   <ac:structured-macro ac:macro-id="29f83253-7ddd-44ec-b91e-2291e36fb998" ac:name="html" ac:schema-version="1">
+                                   <ac:plain-text-body><![CDATA[<span id='anchor-{space_record.spacekey}-{content_dict[key]['order']['orderid']}'></span>]]></ac:plain-text-body>
+                                  </ac:structured-macro></div></td>"""
+
+            if role_out_flag:
+                body += f"""
+                                <td style="vertical-align: middle;text-align: left; min-width: 100px;"><p>{content_dict[key]['order']['unionrole']}</p></td>
+                                """
+
+            body += f"""
+                                <td style="vertical-align: middle;text-align: left;"><div class="content-wrapper"><p>{content_dict[key]['order']['text']}</p>"""
+            body += _attach_files_and_render_links(
+                confluence=confluence,
+                page_id=page['id'],
+                files=content_dict[key]['order']['attachments'],
+                prefix='Приложение-к-вопросу',
+                row_number=row_number,
+                question_title=QUESTION_TITLE,
+                space=space,
+            )
+            body += f"""</div></td><td style="vertical-align: middle;"><div><p style="text-align: center;">{content_dict[key]['order']['orderid']}</p></div></td>
+                                <td style="vertical-align: middle;text-align: left;"><div class="content-wrapper"><p>{markdown.markdown(content_dict[key]['answer']['text'])}</p></div>"""
+            body += _attach_files_and_render_links(
+                confluence=confluence,
+                page_id=page['id'],
+                files=content_dict[key]['answer']['attachments'],
+                prefix='Приложение-к-ответу',
+                row_number=row_number,
+                question_title=QUESTION_TITLE,
+                space=space,
+            )
+            body += """</td></tr>"""
+
+        body += TABLE_BODY_END
+        confluence.update_page(
+            page['id'],
+            QUESTION_TITLE,
+            body,
+            type='page',
+            representation='storage',
+            minor_edit=False,
+        )
+        _set_public_active(0)
     except Exception as e:
         print(str(e))
-        print("ERROR during public question" + str(orderid))
-        appConfRecEnd = AppConfig.query.order_by(desc('created_at')).limit(1).first()
-        appConfRecEnd.ispublicactive = 0
-        db.session.commit()
+        print('ERROR during public question' + str(orderid))
+        _set_public_active(0)
         check_public = OrderPublic.query.filter_by(orderid=int(orderid)).first()
         if check_public is not None:
             db.session.delete(check_public)

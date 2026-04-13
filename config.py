@@ -21,6 +21,16 @@ class Config:
     SUPP_DB_USERNAME = os.getenv('SUPP_DB_USERNAME')
     SUPP_DB_PASS = os.getenv('SUPP_DB_PASS')
 
+    ETD2_DB_HOST = os.getenv('ETD2_DB_HOST')
+    ETD2_DB_PORT = os.getenv('ETD2_DB_PORT')
+    ETD2_DB_SERVICENAME = os.getenv('ETD2_DB_SERVICENAME')
+    ETD2_DB_USERNAME = os.getenv('ETD2_DB_USERNAME')
+    ETD2_DB_PASS = os.getenv('ETD2_DB_PASS')
+
+    IAC_BOT_TOKEN = os.getenv('IAC_BOT_TOKEN')
+
+    TEL_SOCKS_PROXY = os.getenv('TEL_SOCKS_PROXY')
+
     SUPP_PARQUET_DATA_DIR = '/usr/src/data/suppinfo'
 
     SUPP_PARQUET_FILE_PREFIX = 'supp'

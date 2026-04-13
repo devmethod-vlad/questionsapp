@@ -1,6 +1,8 @@
-from flask import current_app as app, render_template
+from flask import current_app as app, render_template, jsonify
+from .extensions import limiter
 from pytz import timezone
 import requests
+from questionsapp.services.questions.get_questions_api import get_questions_api_data
 from questionsapp.models import UserTelegramInfo, OrderMess, AnonymOrder
 from flask import request, send_from_directory
 from questionsapp.services.questionslist.formquestionslist import form_questions_list, find_question_in_list
@@ -20,11 +22,10 @@ from questionsapp.services.stats.bot.phrazesperdaystat import get_perdayphrazes_
 from questionsapp.services.roles.enteradmin import enter_admin
 from questionsapp.services.appconfig.getappconfig import get_appconfig_info
 from questionsapp.services.roles.exitadmin import exit_admin
+from questionsapp.services.auxillary.telegram import _tg_post
 from tasks.getfollowers import get_followers_excel
-from tasks.getsuppinfo import get_supp_info
 from tasks.updatespaceinfo import update_spaces_info
-from tasks.updatespaceinfo_new import update_spaces_info_ref
-
+from tasks.getsuppinfo import get_supp_info
 
 east = timezone('Europe/Moscow')
 
@@ -34,6 +35,54 @@ def index():
 
 
 # ОСНОВНАЯ ЛОГИКА
+@app.route(app.config['URL_PREFIX'] + "/questions_api/", methods=['GET'])
+@limiter.limit("60 per minute")  # apply rate limit: e.g., max 60 requests per minute per IP
+def public_questions_api():
+    """
+    GET endpoint to retrieve questions and answers data for external use.
+    Supports pagination and filtering of public questions.
+    """
+    try:
+        # Parse query parameters
+        public_flag = request.args.get('publicorder', default="0")
+        public_only = True if public_flag == "1" else False
+
+        # page_count (default 100, max 500)
+        per_page_str = request.args.get('page_count', default="100")
+        page_count = int(per_page_str)
+        if page_count < 1:
+            page_count = 100  # default if invalid low
+        if page_count > 500:
+            page_count = 500  # cap to 500 if too high
+
+        # page number (default 1)
+        page_str = request.args.get('page', default="1")
+        page = int(page_str)
+        if page < 1:
+            page = 1
+
+    except ValueError:
+        # If int conversion fails (invalid input)
+        return {'status': 'error', 'error_mess': 'Invalid pagination parameters; must be integers.'}, 400
+
+    try:
+        # Fetch data using the service function
+        records, total_count = get_questions_api_data(page=page, page_count=page_count, public_only=public_only)
+    except Exception as e:
+        # Log the error and return an error response
+        app.logger.error(f"Failed to retrieve questions API data: {e}")
+        return {'status': 'error', 'error_mess': 'Internal server error while fetching data.'}, 500
+
+    # Prepare the response structure
+    response_data = {
+        'count': total_count,               # total number of records matching the filter
+        'page_count': len(records),         # number of records in the current page
+        'page': page,                       # current page number
+        'data': records                     # list of question/answer records
+    }
+    return jsonify(response_data)
+
+
 @app.route(app.config['URL_PREFIX']+"/questionslist/", methods = ['POST'])
 def form_list():
     if request.method == 'POST':
@@ -63,16 +112,6 @@ def form_list():
 
     else:
         return {'status': 'error', 'error_mess': 'WARN: Incorrect request method'}
-
-@app.route(app.config['URL_PREFIX']+"/updatespace_old/", methods = ['GET'])
-def update_spaces_old():
-    # return update_spaces_info.delay()
-    return update_spaces_info()
-
-@app.route(app.config['URL_PREFIX']+"/updatespace_new/", methods = ['GET'])
-def update_spaces_new():
-    # return update_spaces_info.delay()
-    return update_spaces_info_ref()
 
 
 @app.route(app.config['URL_PREFIX']+"/spaceandroles/", methods = ['POST'])
@@ -234,12 +273,17 @@ def bot_get_excel():
 
         if action and chatid:
             if action == 'getfollowersexcel':
-
-                data = {"chat_id": chatid,
+                # requests.post(app.config['TEL_SENDMESS_URL'], data=data)
+                _tg_post(
+                    app.config['TEL_SENDMESS_URL'],
+                    json_body={
+                        "chat_id": chatid,
                         "text": '⚠ <b>Запрос принят. Ожидайте ваш файл с результатами</b>',
-                        'parse_mode': 'html'}
-
-                requests.post(app.config['TEL_SENDMESS_URL'], data=data)
+                        'parse_mode': 'html'
+                    },
+                    timeout=(10.0, 40.0),
+                    socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                )
 
                 if app.config['FLASK_ENV'] == 'production':
                     get_followers_excel.delay(chatid)
@@ -247,15 +291,20 @@ def bot_get_excel():
                     get_followers_excel(chatid)
                 return {'status': 'ok'}
             elif action == 'getsuppinfo':
-                print("getsuppinfo")
-                data = {"chat_id": chatid,
+                # requests.post(app.config['TEL_SENDMESS_URL'], data=data)
+                _tg_post(
+                    app.config['TEL_SENDMESS_URL'],
+                    json_body={
+                        "chat_id": chatid,
                         "text": '⚠ <b>Запрос принят. Ожидайте ваш файл с результатами</b>',
-                        'parse_mode': 'html'}
-
-                requests.post(app.config['TEL_SENDMESS_URL'], data=data)
+                        'parse_mode': 'html'
+                    },
+                    timeout=(10.0, 40.0),
+                    socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                )
 
                 if app.config['FLASK_ENV'] == 'production':
-                    get_supp_info(chatid)
+                    get_supp_info.delay(chatid)
                 else:
                     get_supp_info(chatid)
                 return {'status': 'ok'}
