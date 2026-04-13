@@ -1,26 +1,32 @@
 """Question-domain application services.
 
 This module is the stable service layer used by FastAPI routers.
-It hides the legacy implementation details while preserving the
-existing external API contract.
+It hides legacy implementation details while preserving the existing
+external API contract.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from app.repositories.questions_repository import QuestionsReadRepository
 from app.services.legacy_bridge import FileCompat, LegacyServiceAdapter
 
 
 class QuestionsService:
     """Application service for question-related operations."""
 
-    @staticmethod
-    def get_public_questions(*, page: int, page_count: int, public_only: bool):
+    def __init__(self, *, questions_read_repository: QuestionsReadRepository):
+        self._questions_read_repository = questions_read_repository
+
+    def get_public_questions(self, *, page: int, page_count: int, public_only: bool):
+        """Return public questions through repository abstraction."""
+
         return LegacyServiceAdapter.get_questions_api(
             page=page,
             page_count=page_count,
             public_only=public_only,
+            repository=self._questions_read_repository,
         )
 
     @staticmethod

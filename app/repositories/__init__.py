@@ -1,5 +1,11 @@
 """Repository and data-access abstractions for FastAPI layer."""
 
-from app.repositories.legacy_session import LegacySessionContext, get_legacy_session_context
+from app.db.session import RequestSessionContext, get_request_session_context
+from app.repositories.questions_repository import QuestionsReadRepository, SqlAlchemyQuestionsReadRepository
 
-__all__ = ["LegacySessionContext", "get_legacy_session_context"]
+__all__ = [
+    "QuestionsReadRepository",
+    "RequestSessionContext",
+    "SqlAlchemyQuestionsReadRepository",
+    "get_request_session_context",
+]

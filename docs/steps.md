@@ -140,3 +140,22 @@ Changelog по совместимости (должен быть “no breaking 
 
 ## Следующий этап
 - Детальный план финальной очистки и декомиссии Flask: `docs/post_fastapi_cleanup_plan.md`.
+
+## Выполнено в текущей итерации (post-cleanup шаги 3.1, 3.2, 3.3)
+
+### 3.1 Единый DB lifecycle
+- Введён единый request-scoped lifecycle dependency: `app/db/session.py`.
+- Политика rollback/remove централизована в одном месте и используется FastAPI endpoint'ами.
+- `app/repositories/legacy_session.py` оставлен как совместимый shim для постепенного перехода импортов.
+
+### 3.2 Репозитории вместо SQL в handlers
+- Добавлен контракт репозитория `QuestionsReadRepository` и SQLAlchemy-реализация
+  `SqlAlchemyQuestionsReadRepository` в `app/repositories/questions_repository.py`.
+- SQL для `/questions_api/` вынесен из legacy handler в repository-слой.
+- Сервисный слой теперь использует dependency-инъекцию (`app/services/dependencies.py`) и вызывает репозиторий по цепочке:
+  `endpoint -> service -> repository`.
+
+### 3.3 Асинхронность (отдельный трек)
+- Подготовлен отдельный RFC/беклог на async data layer:
+  `docs/async_data_layer_rfc.md`.
+- Cleanup-итерация не смешивается с async-миграцией; текущий sync-контур стабилизирован.
