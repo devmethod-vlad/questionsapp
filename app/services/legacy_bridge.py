@@ -1,7 +1,8 @@
-"""Bridge layer that allows FastAPI handlers to call legacy Flask services.
+"""Bridge layer for calling legacy domain services from FastAPI.
 
-This keeps business logic untouched during migration while routing and
-validation are moved to FastAPI.
+The bridge is intentionally isolated from direct Flask imports in module
+scope so the ASGI app can start even after Flask runtime dependencies are
+removed from the primary dependency set.
 """
 
 from __future__ import annotations
@@ -13,8 +14,6 @@ from typing import Any, Iterator
 
 from fastapi import UploadFile
 
-import questionsapp
-from questionsapp import create_app
 from questionsapp.services.appconfig.getappconfig import get_appconfig_info
 from questionsapp.services.appconfig.updateconfig import update_app_config
 from questionsapp.services.attachments.changeatttachpublicity import change_attach_publicity
@@ -38,22 +37,38 @@ from questionsapp.services.stats.bot.phrazesperdaystat import get_perdayphrazes_
 _legacy_flask_app = None
 
 
-def get_legacy_flask_app():
-    """Lazily construct Flask app required by legacy business services.
+class LegacyRuntimeUnavailable(RuntimeError):
+    """Raised when optional legacy runtime cannot be bootstrapped."""
 
-    Lazy initialization keeps FastAPI-only operations (e.g. OpenAPI generation)
-    independent from runtime-only Flask env requirements.
+
+def get_legacy_flask_app():
+    """Lazily construct legacy app required by legacy business services.
+
+    Lazy initialization keeps FastAPI-only operations (for example OpenAPI
+    generation) independent from optional legacy runtime requirements.
     """
 
     global _legacy_flask_app
     if _legacy_flask_app is None:
+        try:
+            import questionsapp
+            from questionsapp import create_app
+        except Exception as exc:  # pragma: no cover - optional legacy runtime
+            raise LegacyRuntimeUnavailable("Legacy runtime bootstrap failed") from exc
+
         _legacy_flask_app = create_app(celery=questionsapp.celery)
     return _legacy_flask_app
 
 
 @contextmanager
 def flask_context() -> Iterator[None]:
-    with get_legacy_flask_app().app_context():
+    """Compatibility context manager for legacy app context lifecycle."""
+
+    try:
+        with get_legacy_flask_app().app_context():
+            yield
+    except LegacyRuntimeUnavailable:
+        # Let caller return a stable, legacy envelope instead of crashing.
         yield
 
 
@@ -81,17 +96,31 @@ def as_jsonable(value: Any) -> Any:
     return value, 200
 
 
+def runtime_unavailable_response() -> tuple[dict[str, str], int]:
+    """Legacy-compatible error envelope for missing optional runtime."""
+
+    return {"status": "error", "error_mess": "WARN: Legacy runtime unavailable"}, 200
+
+
 class LegacyServiceAdapter:
     """Facade for legacy handlers callable from FastAPI routers."""
 
     @staticmethod
     def get_questions_api(*, page: int, page_count: int, public_only: bool):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return [], 0
         with flask_context():
             records, total_count = get_questions_api_data(page=page, page_count=page_count, public_only=public_only)
         return records, total_count
 
     @staticmethod
     def form_questions_list(payload: dict[str, Any]):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return runtime_unavailable_response()
         with flask_context():
             if payload.get("findquestioninlist"):
                 return as_jsonable(find_question_in_list(payload))
@@ -99,11 +128,19 @@ class LegacyServiceAdapter:
 
     @staticmethod
     def get_roles(payload: dict[str, Any]):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return runtime_unavailable_response()
         with flask_context():
             return as_jsonable(get_roles_by_space(payload.get("spaceid"), payload.get("roleid"), payload.get("userid")))
 
     @staticmethod
     def save_or_update(action: str, payload: dict[str, Any]):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return runtime_unavailable_response()
         with flask_context():
             if action == "save_question":
                 return as_jsonable(save_question(payload))
@@ -115,6 +152,10 @@ class LegacyServiceAdapter:
 
     @staticmethod
     def service_action(payload: dict[str, Any]):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return runtime_unavailable_response()
         with flask_context():
             action = payload.get("action")
             if action == "execaction":
@@ -145,6 +186,10 @@ class LegacyServiceAdapter:
 
     @staticmethod
     def statistic(payload: dict[str, Any]):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return runtime_unavailable_response()
         with flask_context():
             delta = "7day" if int(payload.get("botimeperiod", 0)) == 7 else "30day"
             if payload.get("botstatskind") == "newusers":
@@ -157,6 +202,10 @@ class LegacyServiceAdapter:
 
     @staticmethod
     def botexcel(payload: dict[str, Any]):
+        try:
+            get_legacy_flask_app()
+        except LegacyRuntimeUnavailable:
+            return runtime_unavailable_response()
         with flask_context():
             action = payload.get("action")
             chatid = payload.get("chatid")
