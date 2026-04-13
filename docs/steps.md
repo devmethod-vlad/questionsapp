@@ -136,3 +136,7 @@ Changelog по совместимости (должен быть “no breaking 
   - `app/services/questions_service.py`
   - `app/services/admin_service.py`
 - Legacy Flask app переведён на ленивую инициализацию в bridge-слое, чтобы FastAPI-инфраструктура (например, OpenAPI генерация) не зависела от Flask runtime при импортах.
+
+
+## Следующий этап
+- Детальный план финальной очистки и декомиссии Flask: `docs/post_fastapi_cleanup_plan.md`.
