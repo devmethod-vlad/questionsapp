@@ -11,7 +11,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.config import BASE_ROLE, DEFAULT_FORMAT, NULLROLE, NULLSPACE, QUESTION_STATUS, URL_PREFIX
+from app.core.config import (
+    BASE_ROLE,
+    DEFAULT_FORMAT,
+    DEFAULT_RENDER_STATUSES,
+    NULLROLE,
+    NULLSPACE,
+    QUESTION_STATUS,
+    SHOW_ALL_SPACES_ITEM,
+    URL_PREFIX,
+)
 
 
 def get_base_roles() -> dict[str, dict[str, Any]]:
@@ -48,3 +57,15 @@ def get_default_format() -> str:
     """Return default text encoding used by legacy password flows."""
 
     return DEFAULT_FORMAT
+
+
+def get_default_render_statuses() -> list[str]:
+    """Return default statuses rendered for questions list screen."""
+
+    return DEFAULT_RENDER_STATUSES
+
+
+def get_show_all_spaces_item() -> dict[str, Any]:
+    """Return synthetic first item for the spaces selector."""
+
+    return SHOW_ALL_SPACES_ITEM

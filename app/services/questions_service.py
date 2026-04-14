@@ -10,15 +10,23 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.runtime_config import get_url_prefix
+from app.repositories.questions_list_repository import SqlAlchemyQuestionsListRepository
 from app.repositories.questions_repository import QuestionsReadRepository
 from app.services.legacy_bridge import FileCompat, LegacyServiceAdapter
+from app.services.questions_list_service import QuestionsListService
 
 
 class QuestionsService:
     """Application service for question-related operations."""
 
-    def __init__(self, *, questions_read_repository: QuestionsReadRepository):
+    def __init__(
+        self,
+        *,
+        questions_read_repository: QuestionsReadRepository,
+        questions_list_repository: SqlAlchemyQuestionsListRepository,
+    ):
         self._questions_read_repository = questions_read_repository
+        self._questions_list_repository = questions_list_repository
 
     def get_public_questions(self, *, page: int, page_count: int, public_only: bool):
         """Return public questions through native repository abstraction.
@@ -59,9 +67,11 @@ class QuestionsService:
 
         return parsed_page, parsed_page_count
 
-    @staticmethod
-    def get_questions_list(payload: dict[str, Any]):
-        return LegacyServiceAdapter.form_questions_list(payload)
+    def get_questions_list(self, payload: dict[str, Any]):
+        service = QuestionsListService(repository=self._questions_list_repository)
+        if payload.get("findquestioninlist"):
+            return service.find_question_in_list(payload), 200
+        return service.form_questions_list(payload), 200
 
     @staticmethod
     def save_or_update(action: str, payload: dict[str, Any], question_files: list[Any], answer_files: list[Any]):

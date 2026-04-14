@@ -88,3 +88,8 @@ left join orders_inwork oi on ordermess.id = oi.orderid
 sql_find_question = """select ordermess.id, row_number() over (order by ordermess.created_at desc, ordermess.text)
 from ordermess
 join order_status os on ordermess.id = os.orderid """
+
+ALL_SPACES_QUERY = """
+select distinct space.id, space.title, space.spacekey
+from infospace space where space.spacekey !='' or space.title !=''
+"""
