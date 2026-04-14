@@ -4,7 +4,8 @@ from app.db.legacy_db import db
 import os
 import json
 from sqlalchemy import desc
-from app.core.legacy_runtime import legacy_app as app
+from app.core.constants import EXT_DICT, NULLROLE, NULLSPACE, QUESTION_STATUS
+from app.core.settings import get_settings
 from app.db.models import AnswerMess, OrderMess, OrderStatus, OrdersInWork, TelegramTempMess
 from app.db.models import OrderSpace, AnonymOrder, AnonymOrderInfo, UserBaseRole
 from app.db.models import AnswerTelegramAttachment, Attachment, AnswerAttachment
@@ -12,9 +13,11 @@ from app.db.models import TelegramAttachment, SyncAttachments, OrderAttachment
 from app.db.models import OrderTelegramAttachment, UserTelegramInfo, OrderPublic, AppConfig
 from app.workers.tasks.publicorder import publicOrder
 
+settings = get_settings()
+
 def exec_action(action, orderid, userid):
     # try:
-        TOKEN = app.config['TEL_TOKEN']
+        TOKEN = settings.tel_token
         print("exec_action TOKEN: ", os.getenv('PG_CONTAINER'))
         SEND_URL = f'https://api.telegram.org/bot{TOKEN}/sendMessage'
 
@@ -63,7 +66,7 @@ def exec_action(action, orderid, userid):
                     SyncAttachments.query.filter(SyncAttachments.telattachid.in_(answerTelAttachsIds)).delete(
                         synchronize_session='fetch')
                 db.session.commit()
-                answersUserPart = os.path.join(app.config['ANSWER_ATTACHMENTS'], str(answerCheckRec.userid))
+                answersUserPart = os.path.join(settings.answer_attachments_dir, str(answerCheckRec.userid))
                 answersUserOrderPart = os.path.join(answersUserPart, str(orderid))
 
                 try:
@@ -94,7 +97,7 @@ def exec_action(action, orderid, userid):
                     SyncAttachments.query.filter(SyncAttachments.telattachid.in_(orderTelAttachsIds)).delete(
                         synchronize_session='fetch')
             db.session.commit()
-            ordersUserPart = os.path.join(app.config['QUESTION_ATTACHMENTS'], str(orderCheckRec.userid))
+            ordersUserPart = os.path.join(settings.question_attachments_dir, str(orderCheckRec.userid))
             orderPathTodelete = os.path.join(ordersUserPart, str(orderid))
             try:
                 shutil.rmtree(orderPathTodelete)
@@ -154,11 +157,11 @@ def exec_action(action, orderid, userid):
                     check_telegram_info = UserTelegramInfo.query.filter_by(userid=orderCheckRec.userid).first()
 
                     if check_telegram_info is not None:
-                        if app.config['TEL_SEND_MESSINWORK']:
+                        if True:
                             sendMessFlag = True
                             if checkRoleRec.roleid == 1 or checkRoleRec.roleid == 3:
                                 if int(userid) == orderCheckRec.userid:
-                                    if not app.config['NOTIFY_SELF_ORDER']:
+                                    if not settings.notify_self_order:
                                         sendMessFlag = False
 
                             if sendMessFlag:
@@ -231,12 +234,12 @@ def exec_action(action, orderid, userid):
 
                 if check_tel_info is not None:
 
-                    if app.config['TEL_SEND_MESSINWORK']:
+                    if True:
                         sendMessFlag = True
                         if checkRoleRec.roleid == 1 or checkRoleRec.roleid == 3:
                             if user_inwork_todelete != 0:
                                 if int(orderCheckRec.userid) == user_inwork_todelete:
-                                    if not app.config['NOTIFY_SELF_ORDER']:
+                                    if not settings.notify_self_order:
                                         sendMessFlag = False
                         if sendMessFlag:
                             try:
@@ -269,18 +272,18 @@ def exec_action(action, orderid, userid):
             if answerCheckRec:
                 checkTelegramInfo = UserTelegramInfo.query.filter_by(userid=answerCheckRec.userid).first()
                 if checkTelegramInfo:
-                    if app.config['TEL_SEND_MESSUSERCLOSED']:
+                    if True:
                         sendMessFlag = True
                         if checkRoleRec.roleid == 1 or checkRoleRec.roleid == 3:
                             if int(userid) == answerCheckRec.userid:
-                                if not app.config['NOTIFY_SELF_ORDER']:
+                                if not settings.notify_self_order:
                                     sendMessFlag = False
                         if sendMessFlag:
                             try:
                                 message = '🔔 <b>Вопрос <u>№ ' + str(orderid) + '</u> был закрыт пользователем!</b>'
                                 requests.post(SEND_URL, json={'chat_id': checkTelegramInfo.tlgmid, 'text': message,
                                                               'parse_mode': 'HTML'})
-                                # bot = telebot.TeleBot(app.config['TEL_TOKEN'], parse_mode='HTML')
+                                # bot = telebot.TeleBot(settings.tel_token, parse_mode='HTML')
                                 # bot.send_message(checkTelegramInfo.tlgmid, message)
                                 sendTelegramNotification = 'sent'
                             except:

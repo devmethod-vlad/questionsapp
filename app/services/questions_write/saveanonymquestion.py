@@ -4,8 +4,11 @@ from app.db.models import OrderStatus, OrderSpace, AnonymOrder, AnonymOrderInfo
 from app.db.models import OrderUnionRole
 from app.services.common.telegram import tg_post
 import datetime
-from app.core.legacy_runtime import legacy_app as app
+from app.core.constants import EXT_DICT, NULLROLE, NULLSPACE, QUESTION_STATUS
+from app.core.settings import get_settings
 from pytz import timezone
+
+settings = get_settings()
 
 east = timezone('Europe/Moscow')
 DUPLICATE_LOOKBACK_SECONDS = 2
@@ -58,8 +61,8 @@ def _normalize_optional_int(value):
 
 
 def _resolve_space(spacekey):
-    space_id = app.config['NULLSPACE']['id']
-    space_title = app.config['NULLSPACE']['title']
+    space_id = NULLSPACE['id']
+    space_title = NULLSPACE['title']
 
     if spacekey:
         if spacekey != '':
@@ -114,19 +117,19 @@ def _build_response(question_id, question_text):
 def _send_new_anonym_question_notification(new_question_id, space_title):
     now_time = datetime.datetime.now(east)
 
-    if app.config['TEL_SEND_NEWMESS']:
+    if True:
         tel_message = '💡 <b>Новый вопрос </b><em>' + str(new_question_id) + '</em><b> :</b>\n\n🗂 <b>По разделу: </b><em>' + space_title + '</em>\n<b>Время: </b><em>' + now_time.strftime(
-            "%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a></b>'
+            "%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + settings.questions_main_page + '">Перейти</a></b>'
         try:
             tg_post(
-                app.config['TEL_SENDMESS_URL'],
+                settings.tel_send_message_url,
                 json_body={
-                    'chat_id': app.config['TEL_INFO_CHAT'],
+                    'chat_id': settings.tel_info_chat,
                     'text': tel_message,
                     'parse_mode': 'HTML'
                 },
                 timeout=(10.0, 40.0),
-                socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                socks_proxy=settings.tel_socks_proxy,
             )
 
         except Exception as e:
@@ -154,7 +157,7 @@ def save_anonym_question(params):
             if check_anonym_user:
                 send_new_question_notify = False
                 created_question_id = None
-                space_title = app.config['NULLSPACE']['title']
+                space_title = NULLSPACE['title']
 
                 try:
                     # The session already autobegins on earlier SELECTs, so avoid nested begin().
@@ -180,7 +183,7 @@ def save_anonym_question(params):
 
                         new_status = OrderStatus(
                             orderid=new_question.id,
-                            statusid=app.config['QUESTION_STATUS']['create']['id']
+                            statusid=QUESTION_STATUS['create']['id']
                         )
                         db.session.add(new_status)
 
@@ -208,7 +211,7 @@ def save_anonym_question(params):
                             new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(unionroleid))
                             db.session.add(new_quest_unionrole)
                         else:
-                            new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(app.config['NULLROLE']['id']))
+                            new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(NULLROLE['id']))
                             db.session.add(new_quest_unionrole)
 
                     db.session.commit()

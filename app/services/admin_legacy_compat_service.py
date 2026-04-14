@@ -17,7 +17,7 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from pytz import timezone
 
-from app.core.runtime_config import get_config_value
+from app.core.settings import get_settings
 from app.services.common.telegram import tg_post
 from app.db.models import (
     AnswerAttachment,
@@ -30,6 +30,8 @@ from app.db.models import (
     TelPhrazeStats,
     UserTelegramInfo,
 )
+
+settings = get_settings()
 
 
 EAST_TZ = timezone("Europe/Moscow")
@@ -110,7 +112,7 @@ class AdminLegacyCompatService:
                 session.delete(web_attachment)
 
                 base_dir_key = "QUESTION_ATTACHMENTS" if attach_target == "question" else "ANSWER_ATTACHMENTS"
-                root_dir = get_config_value(base_dir_key)
+                root_dir = settings.question_attachments_dir if base_dir_key == "QUESTION_ATTACHMENTS" else settings.answer_attachments_dir
                 if root_dir:
                     file_path = os.path.join(str(root_dir), str(userid), str(orderid), str(attach_path))
                     try:
@@ -247,17 +249,17 @@ class AdminLegacyCompatService:
             return {"status": "error", "error_mess": "WARN: No params"}
 
         tg_post(
-            get_config_value("TEL_SENDMESS_URL"),
+            settings.tel_send_message_url,
             json_body={
                 "chat_id": chatid,
                 "text": "⚠ <b>Запрос принят. Ожидайте ваш файл с результатами</b>",
                 "parse_mode": "html",
             },
             timeout=(10.0, 40.0),
-            socks_proxy=get_config_value("TEL_SOCKS_PROXY"),
+            socks_proxy=settings.tel_socks_proxy,
         )
 
-        env_name = get_config_value("FLASK_ENV")
+        env_name = settings.flask_env
         if action == "getfollowersexcel":
             from app.workers.tasks.getfollowers import get_followers_excel
 

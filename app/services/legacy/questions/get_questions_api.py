@@ -7,8 +7,10 @@ all reads through the repository abstraction.
 
 from __future__ import annotations
 
-from app.core.runtime_config import get_url_prefix
+from app.core.settings import get_settings
 from app.repositories.questions_repository import QuestionsReadRepository, SqlAlchemyQuestionsReadRepository
+
+settings = get_settings()
 
 
 def get_questions_api_data(
@@ -37,7 +39,7 @@ def get_questions_api_data(
         page=normalized_page,
         page_count=normalized_page_count,
         public_only=public_only,
-        url_prefix=get_url_prefix(),
+        url_prefix=settings.url_prefix,
     )
 
 

@@ -6,10 +6,13 @@ from app.db.models import AppConfig, AnswerMess, UserTelegramInfo, Attachment, U
 from app.db.models import OrderAttachment, SpaceUnionRole, UnionRole, UserBaseRole, SpaceUnionRoleActive
 from app.db.models import TelegramTempMess, FeedbackQuestion
 from app.services.common.telegram import tg_post
-from app.core.legacy_runtime import legacy_app as app
+from app.core.constants import EXT_DICT, NULLROLE, NULLSPACE, QUESTION_STATUS
+from app.core.settings import get_settings
 from pytz import timezone
 from app.services.legacy.roles.getrole import get_role
 from app.services.files.uploads import UploadLike
+
+settings = get_settings()
 
 east = timezone('Europe/Moscow')
 
@@ -53,8 +56,8 @@ def _build_attachments(question_id):
 
 
 def _resolve_space(spacekey):
-    space_id = int(app.config['NULLSPACE']['id'])
-    space_title = app.config['NULLSPACE']['title']
+    space_id = int(NULLSPACE['id'])
+    space_title = NULLSPACE['title']
 
     if spacekey and spacekey != '0':
         space_rec = Spaces.query.filter_by(spacekey=spacekey).first()
@@ -97,9 +100,9 @@ def _find_recent_duplicate_question(userid, message, space_id, isfeedback):
 
 def _send_new_question_notifications(question_id, question_user_role, space_id, space_title, isfeedback):
     send_mess_flag = True
-    if app.config['TEL_SEND_NEWMESS']:
+    if True:
         if question_user_role == 'admin' or question_user_role == 'redactor':
-            if not app.config['NOTIFY_SELF_ORDER']:
+            if not settings.notify_self_order:
                 send_mess_flag = False
     else:
         send_mess_flag = False
@@ -111,20 +114,20 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
     now_time = datetime.datetime.now(east)
 
     if int(isfeedback) != 1:
-        tel_message = '💡 <b>Новый вопрос </b><em>' + str(question_id) + '</em><b> :</b>\n\n🗂 <b>По разделу: </b><em>' + space_title + '</em>\n🎯 <b>Источник: </b><em>Веб-версия</em>\n<b>Время: </b><em>' + now_time.strftime("%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a></b>'
+        tel_message = '💡 <b>Новый вопрос </b><em>' + str(question_id) + '</em><b> :</b>\n\n🗂 <b>По разделу: </b><em>' + space_title + '</em>\n🎯 <b>Источник: </b><em>Веб-версия</em>\n<b>Время: </b><em>' + now_time.strftime("%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + settings.questions_main_page + '">Перейти</a></b>'
     else:
-        tel_message = '💡 <b>Новое сообщение с обратной связью </b><em>' + str(question_id) + '</em><b> :</b>\n\n🎯 <b>Источник: </b><em>Веб-версия</em>\n<b>Время: </b><em>' + now_time.strftime("%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a></b>'
+        tel_message = '💡 <b>Новое сообщение с обратной связью </b><em>' + str(question_id) + '</em><b> :</b>\n\n🎯 <b>Источник: </b><em>Веб-версия</em>\n<b>Время: </b><em>' + now_time.strftime("%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + settings.questions_main_page + '">Перейти</a></b>'
 
     try:
         tg_post(
-            app.config['TEL_SENDMESS_URL'],
+            settings.tel_send_message_url,
             json_body={
-                'chat_id': app.config['TEL_INFO_CHAT'],
+                'chat_id': settings.tel_info_chat,
                 'text': tel_message,
                 'parse_mode': 'HTML'
             },
             timeout=(10.0, 40.0),
-            socks_proxy=app.config['TEL_SOCKS_PROXY'],
+            socks_proxy=settings.tel_socks_proxy,
         )
     except Exception as e:
         print(str(e))
@@ -132,14 +135,14 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
     if check_tel_chat is not None:
         try:
             tg_post(
-                app.config['TEL_SENDMESS_URL'],
+                settings.tel_send_message_url,
                 json_body={
                     'chat_id': check_tel_chat.chatid,
                     'text': tel_message,
                     'parse_mode': 'HTML'
                 },
                 timeout=(10.0, 40.0),
-                socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                socks_proxy=settings.tel_socks_proxy,
             )
         except Exception as e:
             print(str(e))
@@ -153,20 +156,20 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
         return
 
     check_user_telinfo = UserTelegramInfo.query.filter_by(userid=notify_userid).first()
-    if check_user_telinfo is None or not app.config['TEL_SEND_UPDTMESS']:
+    if check_user_telinfo is None or not True:
         return
 
     user_message = '💡 <b>Пользователь обновил вопрос № ' + str(question_id) + '</b>'
     try:
         req = tg_post(
-            app.config['TEL_SENDMESS_URL'],
+            settings.tel_send_message_url,
             json_body={
                 'chat_id': check_user_telinfo.tlgmid,
                 'text': user_message,
                 'parse_mode': 'HTML'
             },
             timeout=(10.0, 40.0),
-            socks_proxy=app.config['TEL_SOCKS_PROXY'],
+            socks_proxy=settings.tel_socks_proxy,
         )
         send_resp = req.json()
 
@@ -183,16 +186,16 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
 
 def _send_space_change_notification(question_id, space_title):
     try:
-        user_message = '💡 <b>Вопрос № ' + str(question_id) + '\nПривязан к пространству: <em>' + space_title + '</em></b>\n\n<a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a>'
+        user_message = '💡 <b>Вопрос № ' + str(question_id) + '\nПривязан к пространству: <em>' + space_title + '</em></b>\n\n<a href = "' + settings.questions_main_page + '">Перейти</a>'
         tg_post(
-            app.config['TEL_SENDMESS_URL'],
+            settings.tel_send_message_url,
             json_body={
-                'chat_id': app.config['TEL_INFO_CHAT'],
+                'chat_id': settings.tel_info_chat,
                 'text': user_message,
                 'parse_mode': 'HTML'
             },
             timeout=(10.0, 40.0),
-            socks_proxy=app.config['TEL_SOCKS_PROXY'],
+            socks_proxy=settings.tel_socks_proxy,
         )
     except Exception as e:
         print(str(e))
@@ -224,8 +227,8 @@ def save_question(params):
             send_new_question_notify = False
             send_update_notify = False
             question_user_role = ''
-            space_id = int(app.config['NULLSPACE']['id'])
-            space_title = app.config['NULLSPACE']['title']
+            space_id = int(NULLSPACE['id'])
+            space_title = NULLSPACE['title']
 
             # Session in Flask-SQLAlchemy/SQLAlchemy 2.x usually enters a transaction on the first query.
             # Because of that we do not open an explicit begin() block here and instead rely on a single
@@ -264,10 +267,10 @@ def save_question(params):
                     question_id = new_question.id
                     if isfeedback == 1:
                         new_quest_status = OrderStatus(orderid=new_question.id,
-                                                       statusid=app.config['QUESTION_STATUS']['archive']['id'])
+                                                       statusid=QUESTION_STATUS['archive']['id'])
                     else:
                         new_quest_status = OrderStatus(orderid=new_question.id,
-                                                       statusid=app.config['QUESTION_STATUS']['create']['id'])
+                                                       statusid=QUESTION_STATUS['create']['id'])
                     db.session.add(new_quest_status)
 
             check_space = OrderSpace.query.filter_by(orderid=int(question_id)).first()
@@ -313,7 +316,7 @@ def save_question(params):
             check_unionrole = OrderUnionRole.query.filter_by(orderid=question_id).first()
 
             if space_active:
-                question_unionrole_id = app.config['NULLROLE']['id']
+                question_unionrole_id = NULLROLE['id']
 
                 if int(unionroleid) in space_unionroles_id:
                     question_unionrole_id = int(unionroleid)
@@ -325,7 +328,7 @@ def save_question(params):
                     new_quest_unionrole = OrderUnionRole(orderid=question_id, unionroleid=question_unionrole_id)
                     db.session.add(new_quest_unionrole)
             else:
-                if space_id == int(app.config['NULLSPACE']['id']) and new_flag:
+                if space_id == int(NULLSPACE['id']) and new_flag:
                     if unionroleid:
                         if int(unionroleid) != 0 and role == 'personal':
                             check_unionrole = UnionRole.query.filter_by(id=int(unionroleid)).first()
@@ -345,7 +348,7 @@ def save_question(params):
                 check_status = OrderStatus.query.filter_by(orderid=int(question_id)).first()
                 check_answer = AnswerMess.query.filter_by(orderid=question_id).first()
 
-                if check_status is not None and check_status.statusid == int(app.config['QUESTION_STATUS']['back_in_work']['id']):
+                if check_status is not None and check_status.statusid == int(QUESTION_STATUS['back_in_work']['id']):
                     if is_question_text_change or len(uploaded_files) != 0:
                         if int(userid) == question_userid and check_answer is not None:
                             notify_userid = check_answer.userid
@@ -355,9 +358,9 @@ def save_question(params):
 
             if len(uploaded_files) != 0:
                 app_conf_rec = AppConfig.query.first()
-                if not os.path.isdir(app.config['QUESTION_ATTACHMENTS']):
-                    os.mkdir(app.config['QUESTION_ATTACHMENTS'])
-                user_path = os.path.join(app.config['QUESTION_ATTACHMENTS'], str(userid))
+                if not os.path.isdir(settings.question_attachments_dir):
+                    os.mkdir(settings.question_attachments_dir)
+                user_path = os.path.join(settings.question_attachments_dir, str(userid))
                 if not os.path.isdir(user_path):
                     os.mkdir(user_path)
                 user_order_path = os.path.join(user_path, str(question_id))
@@ -377,21 +380,21 @@ def save_question(params):
                         file_item.save_to(os.path.join(user_order_path, filename))
 
                         attach_type = ''
-                        if file_ext in app.config['EXT_DICT']['imageExtension']:
+                        if file_ext in EXT_DICT['imageExtension']:
                             attach_type = 'image'
-                        elif file_ext in app.config['EXT_DICT']['wordExtension']:
+                        elif file_ext in EXT_DICT['wordExtension']:
                             attach_type = 'word'
-                        elif file_ext in app.config['EXT_DICT']['textDocExtension']:
+                        elif file_ext in EXT_DICT['textDocExtension']:
                             attach_type = 'textdoc'
-                        elif file_ext in app.config['EXT_DICT']['excelExtension']:
+                        elif file_ext in EXT_DICT['excelExtension']:
                             attach_type = 'excel'
-                        elif file_ext in app.config['EXT_DICT']['videoExtension']:
+                        elif file_ext in EXT_DICT['videoExtension']:
                             attach_type = 'video'
-                        elif file_ext in app.config['EXT_DICT']['audioExtension']:
+                        elif file_ext in EXT_DICT['audioExtension']:
                             attach_type = 'audio'
-                        elif file_ext in app.config['EXT_DICT']['pdfExtensions']:
+                        elif file_ext in EXT_DICT['pdfExtensions']:
                             attach_type = 'pdf'
-                        elif file_ext in app.config['EXT_DICT']['animExtension']:
+                        elif file_ext in EXT_DICT['animExtension']:
                             attach_type = 'animation'
                         new_attach = Attachment(type=attach_type, path=filename, caption='', public=1)
                         db.session.add(new_attach)
