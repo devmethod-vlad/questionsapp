@@ -1,19 +1,19 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, String, TIMESTAMP
 
-from database import db
+from app.db.base import Base
 import datetime
 
 
-class User(db.Model):
+class User(Base):
 
     __tablename__ = 'userpg'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    firstname = db.Column(db.String(1000))
-    lastname = db.Column(db.String(1000))
-    secondname = db.Column(db.String(1000))
-    phone = db.Column(db.String(255))
-    mail = db.Column(db.String(255))
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    firstname = Column(String(1000))
+    lastname = Column(String(1000))
+    secondname = Column(String(1000))
+    phone = Column(String(255))
+    mail = Column(String(255))
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, firstname, lastname, secondname, phone, mail):
         self.firstname = firstname
@@ -22,50 +22,50 @@ class User(db.Model):
         self.phone = phone
         self.mail = mail
 
-class UserEmiasInfo(db.Model):
+class UserEmiasInfo(Base):
     __tablename__ = 'user_emiasinfo'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    emiaslogin = db.Column(db.String(255))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    emiaslogin = Column(String(255))
 
     def __init__(self, userid, emiaslogin):
         self.userid = userid
         self.emiaslogin = emiaslogin
 
 
-class UserWikiInfo(db.Model):
+class UserWikiInfo(Base):
     __tablename__ = 'user_wikiinfo'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    login = db.Column(db.String(255))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    login = Column(String(255))
 
     def __init__(self, userid, login):
         self.userid = userid
         self.login = login
 
-class AccessToken(db.Model):
+class AccessToken(Base):
     __tablename__ = 'access_token'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    token = db.Column(db.String(1000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    token = Column(String(1000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, userid, token):
         self.userid = userid
         self.token = token
 
 
-class AppConfig(db.Model):
+class AppConfig(Base):
     __tablename__ = 'appconfig'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    token_expire = db.Column(db.Integer)
-    botname = db.Column(db.String(255), nullable=False, default='')
-    webappurl = db.Column(db.String(), nullable=False, default='')
-    uploadsize = db.Column(db.Integer, nullable=False, default=1)
-    maxfiles = db.Column(db.Integer, nullable=False, default=0)
-    anonymuserid = db.Column(db.Integer, nullable=False, default=0)
-    ispublicactive = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    token_expire = Column(Integer)
+    botname = Column(String(255), nullable=False, default='')
+    webappurl = Column(String(), nullable=False, default='')
+    uploadsize = Column(Integer, nullable=False, default=1)
+    maxfiles = Column(Integer, nullable=False, default=0)
+    anonymuserid = Column(Integer, nullable=False, default=0)
+    ispublicactive = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, token_expire, botname, webappurl, uploadsize, maxfiles, anonymuserid, ispublicactive):
         self.token_expire = token_expire
@@ -76,68 +76,68 @@ class AppConfig(db.Model):
         self.anonymuserid = anonymuserid
         self.ispublicactive = ispublicactive
 
-class UserTelegramInfo(db.Model):
+class UserTelegramInfo(Base):
     __tablename__ = 'user_telegraminfo'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    tlgmname = db.Column(db.String(255), nullable=False, default='')
-    tlgmid = db.Column(db.String(1000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    tlgmname = Column(String(255), nullable=False, default='')
+    tlgmid = Column(String(1000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, userid, tlgmname, tlgmid):
         self.userid = userid
         self.tlgmname = tlgmname
         self.tlgmid = tlgmid
 
-class OrderMess(db.Model):
+class OrderMess(Base):
     __tablename__ = 'ordermess'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    text = db.Column(db.String(4000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
-    modified_at= db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    text = Column(String(4000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    modified_at= Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, userid, text):
         self.userid = userid
         self.text = text
 
-class OrderPublic(db.Model):
+class OrderPublic(Base):
     __tablename__ = 'order_public'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    orderid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, orderid):
         self.orderid = orderid
 
-class AnonymOrder(db.Model):
+class AnonymOrder(Base):
 
     __tablename__ = 'anonymorder'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    fingerprint = db.Column(db.String(1000))
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    fingerprint = Column(String(1000))
+    orderid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, fingerprint, orderid):
         self.fingerprint = fingerprint
         self.orderid = orderid
 
-class AnonymOrderInfo(db.Model):
+class AnonymOrderInfo(Base):
 
     __tablename__ = 'anonymorderinfo'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    anonymorderid = db.Column(db.Integer, nullable=False, default=0)
-    fio = db.Column(db.String(1000), nullable=False, default='')
-    mail = db.Column(db.String(255), nullable=False, default='')
-    phone = db.Column(db.String(255), nullable=False, default='')
-    telusername = db.Column(db.String(1000), nullable=False, default='')
-    tlgmid = db.Column(db.String(1000), nullable=False, default='')
-    muname = db.Column(db.String(1000), nullable=False, default='')
-    speciality = db.Column(db.String(2000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    orderid = Column(Integer, nullable=False, default=0)
+    anonymorderid = Column(Integer, nullable=False, default=0)
+    fio = Column(String(1000), nullable=False, default='')
+    mail = Column(String(255), nullable=False, default='')
+    phone = Column(String(255), nullable=False, default='')
+    telusername = Column(String(1000), nullable=False, default='')
+    tlgmid = Column(String(1000), nullable=False, default='')
+    muname = Column(String(1000), nullable=False, default='')
+    speciality = Column(String(2000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, orderid, anonymorderid, fio, mail, phone, telusername, tlgmid, muname, speciality):
         self.orderid = orderid
@@ -150,14 +150,14 @@ class AnonymOrderInfo(db.Model):
         self.muname = muname
         self.speciality = speciality
 
-class AnswerMess(db.Model):
+class AnswerMess(Base):
     __tablename__ = 'answermess'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    text = db.Column(db.String(4000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
-    modified_at= db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    orderid = Column(Integer, nullable=False, default=0)
+    text = Column(String(4000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    modified_at= Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, userid, orderid, text):
         self.userid = userid
@@ -165,62 +165,62 @@ class AnswerMess(db.Model):
         self.text = text
 
 
-class OrderStatus(db.Model):
+class OrderStatus(Base):
 
     __tablename__ = 'order_status'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    statusid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    orderid = Column(Integer, nullable=False, default=0)
+    statusid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, orderid, statusid):
         self.orderid = orderid
         self.statusid = statusid
 
-class UserManualInfo(db.Model):
+class UserManualInfo(Base):
 
     __tablename__ = 'user_manualinfo'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    login = db.Column(db.String(255), nullable=False, default='')
-    password = db.Column(db.String(1000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    login = Column(String(255), nullable=False, default='')
+    password = Column(String(1000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, userid, login, password):
         self.userid = userid
         self.login = login
         self.password = password
 
-class BaseRole(db.Model):
+class BaseRole(Base):
     __tablename__ = 'baserole'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(1000), nullable=False, default='')
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(1000), nullable=False, default='')
 
     def __init__(self, name):
         self.name = name
 
-class UserBaseRole(db.Model):
+class UserBaseRole(Base):
 
     __tablename__ = 'user_baserole'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    roleid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    roleid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, userid, roleid):
         self.userid = userid
         self.roleid = roleid
 
-class Attachment(db.Model):
+class Attachment(Base):
 
     __tablename__ = 'attachment'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    type = db.Column(db.String(255), nullable=False, default='')
-    path = db.Column(db.String(1000), nullable=False, default='')
-    caption = db.Column(db.String, nullable=False, default='')
-    public = db.Column(db.Integer, nullable=False, default=1)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    type = Column(String(255), nullable=False, default='')
+    path = Column(String(1000), nullable=False, default='')
+    caption = Column(String, nullable=False, default='')
+    public = Column(Integer, nullable=False, default=1)
 
     def __init__(self, type, path, caption, public):
         self.type = type
@@ -228,38 +228,38 @@ class Attachment(db.Model):
         self.caption = caption
         self.public = public
 
-class OrderAttachment(db.Model):
+class OrderAttachment(Base):
 
     __tablename__ = 'order_attachment'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    attachid = db.Column(db.Integer, nullable=False, default=0)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    attachid = Column(Integer, nullable=False, default=0)
+    orderid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, attachid, orderid):
         self.attachid = attachid
         self.orderid = orderid
 
-class AnswerAttachment(db.Model):
+class AnswerAttachment(Base):
 
     __tablename__ = 'answer_attachment'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    attachid = db.Column(db.Integer, nullable=False, default=0)
-    answerid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    attachid = Column(Integer, nullable=False, default=0)
+    answerid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, attachid, answerid):
         self.attachid = attachid
         self.answerid = answerid
 
-class TelegramAttachment(db.Model):
+class TelegramAttachment(Base):
 
     __tablename__ = 'telegram_attachment'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    type = db.Column(db.String(255), nullable=False, default='')
-    uniqid = db.Column(db.String(1000), nullable=False, default='')
-    caption = db.Column(db.String(), nullable=False, default='')
-    path = db.Column(db.String(), nullable=False, default='')
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    type = Column(String(255), nullable=False, default='')
+    uniqid = Column(String(1000), nullable=False, default='')
+    caption = Column(String(), nullable=False, default='')
+    path = Column(String(), nullable=False, default='')
 
     def __init__(self, type, uniqid, caption, path):
         self.type = type
@@ -267,232 +267,232 @@ class TelegramAttachment(db.Model):
         self.caption = caption
         self.path = path
 
-class AnswerTelegramAttachment(db.Model):
+class AnswerTelegramAttachment(Base):
 
     __tablename__ = 'answer_tlgm_attachment'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    attachid = db.Column(db.Integer, nullable=False, default=0)
-    answerid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    attachid = Column(Integer, nullable=False, default=0)
+    answerid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, attachid, answerid):
         self.attachid = attachid
         self.answerid = answerid
 
 
-class OrderTelegramAttachment(db.Model):
+class OrderTelegramAttachment(Base):
 
     __tablename__ = 'order_tlgm_attachment'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    attachid = db.Column(db.Integer, nullable=False, default=0)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    attachid = Column(Integer, nullable=False, default=0)
+    orderid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, attachid, orderid):
         self.attachid = attachid
         self.orderid = orderid
 
 
-class SyncAttachments(db.Model):
+class SyncAttachments(Base):
 
     __tablename__ = 'sync_attachments'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    webattachid = db.Column(db.Integer, nullable=False, default=0)
-    telattachid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    webattachid = Column(Integer, nullable=False, default=0)
+    telattachid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, webattachid, telattachid):
         self.webattachid = webattachid
         self.telattachid = telattachid
 
-class OrdersInWork(db.Model):
+class OrdersInWork(Base):
 
     __tablename__ = 'orders_inwork'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False,default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    orderid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False,default=datetime.datetime.now)
 
     def __init__(self, userid, orderid):
         self.userid = userid
         self.orderid = orderid
 
-class Spaces(db.Model):
+class Spaces(Base):
 
     __tablename__ = 'infospace'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    title = db.Column(db.String(1000), nullable=False, default='')
-    spacekey = db.Column(db.String(255), nullable=False, default='')
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(1000), nullable=False, default='')
+    spacekey = Column(String(255), nullable=False, default='')
 
     def __init__(self, title, spacekey):
         self.title = title
         self.spacekey = spacekey
 
-class TelChatInfoSpace(db.Model):
+class TelChatInfoSpace(Base):
 
     __tablename__ = 'telchat_infospace'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    spaceid = db.Column(db.Integer, nullable=False, default=0)
-    chatid = db.Column(db.String(500), nullable=False, default='')
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    spaceid = Column(Integer, nullable=False, default=0)
+    chatid = Column(String(500), nullable=False, default='')
 
     def __init__(self, spaceid, chatid):
         self.spaceid = spaceid
         self.chatid = chatid
 
-class OrderSpace(db.Model):
+class OrderSpace(Base):
 
     __tablename__ = 'order_infospace'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    spaceid = db.Column(db.Integer, nullable=False, default=0)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    orderid = Column(Integer, nullable=False, default=0)
+    spaceid = Column(Integer, nullable=False, default=0)
 
     def __init__(self, orderid, spaceid):
         self.orderid = orderid
         self.spaceid = spaceid
 
-class TelPhrazeStats(db.Model):
+class TelPhrazeStats(Base):
 
     __tablename__ = 'telphrazestats'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    searchphrase = db.Column(db.String(4000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    searchphrase = Column(String(4000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, userid, searchphrase):
         self.userid = userid
         self.searchphrase = searchphrase
 
-class UnionRole(db.Model):
+class UnionRole(Base):
 
     __tablename__ = 'unionrole'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    emiasid = db.Column(db.Integer, nullable=False, default=0)
-    name = db.Column(db.String(3000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    emiasid = Column(Integer, nullable=False, default=0)
+    name = Column(String(3000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, emiasid, name):
         self.emiasid = emiasid
         self.name = name
 
-class SpaceUnionRole(db.Model):
+class SpaceUnionRole(Base):
 
     __tablename__ = 'infospace_unionrole'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    spaceid = db.Column(db.Integer, nullable=False, default=0)
-    unionroleid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    spaceid = Column(Integer, nullable=False, default=0)
+    unionroleid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, spaceid, unionroleid):
         self.spaceid = spaceid
         self.unionroleid = unionroleid
 
-class SpaceUnionRoleActive(db.Model):
+class SpaceUnionRoleActive(Base):
 
     __tablename__ = 'spaceunionrole_isactive'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    spaceid = db.Column(db.Integer, nullable=False, default=0)
-    active = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    spaceid = Column(Integer, nullable=False, default=0)
+    active = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, spaceid, active):
         self.spaceid = spaceid
         self.active = active
 
-class UserUnionRole(db.Model):
+class UserUnionRole(Base):
 
     __tablename__ = 'user_unionrole'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    userid = db.Column(db.Integer, nullable=False, default=0)
-    unionroleid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    userid = Column(Integer, nullable=False, default=0)
+    unionroleid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, userid, unionroleid):
         self.userid = userid
         self.unionroleid = unionroleid
 
-class OrderUnionRole(db.Model):
+class OrderUnionRole(Base):
 
     __tablename__ = 'order_unionrole'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    unionroleid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    orderid = Column(Integer, nullable=False, default=0)
+    unionroleid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, orderid, unionroleid):
         self.orderid = orderid
         self.unionroleid = unionroleid
 
-class TelegramTempMess(db.Model):
+class TelegramTempMess(Base):
 
     __tablename__ = 'telegram_tempmess'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    telid = db.Column(db.String(1000), nullable=False, default='')
-    messid = db.Column(db.String(1000), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    telid = Column(String(1000), nullable=False, default='')
+    messid = Column(String(1000), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, telid, messid):
         self.telid = telid
         self.messid = messid
 
 
-class FeedbackQuestion(db.Model):
+class FeedbackQuestion(Base):
 
     __tablename__ = 'feedback_question'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    orderid = db.Column(db.Integer, nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    orderid = Column(Integer, nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, orderid):
         self.orderid = orderid
 
-class BotSpaces(db.Model):
+class BotSpaces(Base):
 
     __tablename__ = 'infospace_bot'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    title = db.Column(db.String(1000), nullable=False, default='')
-    spacekey = db.Column(db.String(255), nullable=False, default='')
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(1000), nullable=False, default='')
+    spacekey = Column(String(255), nullable=False, default='')
 
     def __init__(self, title, spacekey):
         self.title = title
         self.spacekey = spacekey
 
-class SendMethodInfo(db.Model):
+class SendMethodInfo(Base):
     __tablename__ = 'sendmethodsinfo'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    title = db.Column(db.String(500), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(500), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, title):
         self.title = title
 
-class TelBotInfo(db.Model):
+class TelBotInfo(Base):
     __tablename__ = 'telbotinfo'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(500), nullable=False, default='')
-    botident = db.Column(db.String(500), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(500), nullable=False, default='')
+    botident = Column(String(500), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, name, botident):
         self.name = name
         self.botident = botident
 
-class ServiceMailInfo(db.Model):
+class ServiceMailInfo(Base):
     __tablename__ = 'servicemailinfo'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    address = db.Column(db.String(500), nullable=False, default='')
-    server = db.Column(db.String(500), nullable=False, default='')
-    port = db.Column(db.Integer, nullable=False, default=25)
-    username = db.Column(db.String(500), nullable=False, default='')
-    passw = db.Column(db.String(500), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    address = Column(String(500), nullable=False, default='')
+    server = Column(String(500), nullable=False, default='')
+    port = Column(Integer, nullable=False, default=25)
+    username = Column(String(500), nullable=False, default='')
+    passw = Column(String(500), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, address, server, port, username, passw):
         self.address = address
@@ -502,53 +502,53 @@ class ServiceMailInfo(db.Model):
         self.passw = passw
 
 
-class SupportRequest(db.Model):
+class SupportRequest(Base):
 
     __tablename__ = 'support_request'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    userid = db.Column(db.Integer, ForeignKey("userpg.id"),nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    userid = Column(Integer, ForeignKey("userpg.id"),nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, userid):
         self.userid = userid
 
-class SupportText(db.Model):
+class SupportText(Base):
 
     __tablename__ = 'support_text'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    text = db.Column(db.String(), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    text = Column(String(), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, text):
         self.support_id = support_id
         self.text = text
 
-class SupportItPointInput(db.Model):
+class SupportItPointInput(Base):
 
     __tablename__ = 'support_itpoint_input'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    input = db.Column(db.String(255), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    input = Column(String(255), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, input):
         self.support_id = support_id
         self.input = input
 
-class SupportTelegramAttach(db.Model):
+class SupportTelegramAttach(Base):
 
     __tablename__ = 'support_telegram_attach'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    uniqid = db.Column(db.String(1000), nullable=False, default='')
-    caption = db.Column(db.String(1000), nullable=False, default='')
-    type = db.Column(db.String(255), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    uniqid = Column(String(1000), nullable=False, default='')
+    caption = Column(String(1000), nullable=False, default='')
+    type = Column(String(255), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, uniqid, caption, type):
         self.support_id = support_id
@@ -556,15 +556,15 @@ class SupportTelegramAttach(db.Model):
         self.caption = caption
         self.type = type
 
-class SupportProblem(db.Model):
+class SupportProblem(Base):
 
     __tablename__ = 'support_problem'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    global_id = db.Column(db.String(500), nullable=False, default='')
-    system_object_id = db.Column(db.String(500), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    global_id = Column(String(500), nullable=False, default='')
+    system_object_id = Column(String(500), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, global_id, system_object_id):
         self.support_id = support_id
@@ -572,67 +572,67 @@ class SupportProblem(db.Model):
         self.system_object_id = system_object_id
 
 
-class SupportService(db.Model):
+class SupportService(Base):
 
     __tablename__ = 'support_service'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    global_id = db.Column(db.String(500), nullable=False, default='')
-    system_object_id = db.Column(db.String(500), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    global_id = Column(String(500), nullable=False, default='')
+    system_object_id = Column(String(500), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, global_id, system_object_id):
         self.support_id = support_id
         self.global_id = global_id
         self.system_object_id = system_object_id
 
-class SupportUnionRole(db.Model):
+class SupportUnionRole(Base):
 
     __tablename__ = 'support_unionrole'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    unionrole_id = db.Column(db.Integer, ForeignKey("unionrole.id"), nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    unionrole_id = Column(Integer, ForeignKey("unionrole.id"), nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, unionrole_id):
         self.support_id = support_id
         self.unionrole_id = unionrole_id
 
-class SupportAttempt(db.Model):
+class SupportAttempt(Base):
 
     __tablename__ = 'support_attempt'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id):
         self.support_id = support_id
 
-class StatusSupport(db.Model):
+class StatusSupport(Base):
 
     __tablename__ = 'status_support'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False, default='')
-    db_name = db.Column(db.String(255), nullable=False, default='')
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    name = Column(String(255), nullable=False, default='')
+    db_name = Column(String(255), nullable=False, default='')
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, name, db_name):
         self.name = name
         self.db_name = db_name
 
 
-class SupportToStatus(db.Model):
+class SupportToStatus(Base):
 
     __tablename__ = 'support_to_status'
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    support_id = db.Column(db.Integer, ForeignKey("support_request.id"),nullable=False, default=0)
-    status_id = db.Column(db.Integer, ForeignKey("status_support.id"), nullable=False, default=0)
-    created_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
-    modified_at = db.Column(db.TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    support_id = Column(Integer, ForeignKey("support_request.id"),nullable=False, default=0)
+    status_id = Column(Integer, ForeignKey("status_support.id"), nullable=False, default=0)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
+    modified_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.now)
 
     def __init__(self, support_id, status_id):
         self.support_id = support_id
