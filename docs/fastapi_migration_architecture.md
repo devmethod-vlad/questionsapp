@@ -8,7 +8,7 @@
 - `app/core/exceptions.py` — централизованная обработка ошибок.
 - `app/core/middleware.py` — `request-id` и request logging middleware.
 - `app/schemas/` — Pydantic-модели входных данных.
-- `app/services/legacy_bridge.py` — runtime bridge к текущим Flask services без изменения бизнес-логики.
+- `app/services/questions_write/` — native write-сервисы без Flask bridge и transitional wrappers.
 - `app/services/questions_service.py` — стабильный service layer для question-domain endpoint’ов.
 - `app/services/admin_service.py` — стабильный service layer для admin/support endpoint’ов.
 - `app/responses/builders.py` — совместимые response builders (legacy envelopes).
@@ -48,4 +48,4 @@ gunicorn -k uvicorn.workers.UvicornWorker app.main:app -b 0.0.0.0:8000
 
 - Все API endpoint’ы из snapshot обслуживаются FastAPI.
 - Flask HTTP-слой выключен из основного runtime path.
-- Legacy Flask компоненты используются только как внутренний runtime bridge для бизнес-логики в переходный период.
+- Transitional Flask bridge и import-shim слой удалены из active runtime; FastAPI использует только `app/*` сервисы и репозитории.

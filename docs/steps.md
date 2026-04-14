@@ -135,7 +135,7 @@ Changelog по совместимости (должен быть “no breaking 
 - Временные роутер-адаптеры удалены, вместо них используется стабильный сервисный слой:
   - `app/services/questions_service.py`
   - `app/services/admin_service.py`
-- Legacy Flask app переведён на ленивую инициализацию в bridge-слое, чтобы FastAPI-инфраструктура (например, OpenAPI генерация) не зависела от Flask runtime при импортах.
+- Legacy bridge path выведен из active runtime; FastAPI-инфраструктура не зависит от Flask runtime при импортах.
 
 
 ## Следующий этап
@@ -146,7 +146,7 @@ Changelog по совместимости (должен быть “no breaking 
 ### 3.1 Единый DB lifecycle
 - Введён единый request-scoped lifecycle dependency: `app/db/session.py`.
 - Политика rollback/remove централизована в одном месте и используется FastAPI endpoint'ами.
-- `app/repositories/legacy_session.py` оставлен как совместимый shim для постепенного перехода импортов.
+- Совместимый shim `app/repositories/legacy_session.py` удалён после перевода активных импортов на `app/db/session.py`.
 
 ### 3.2 Репозитории вместо SQL в handlers
 - Добавлен контракт репозитория `QuestionsReadRepository` и SQLAlchemy-реализация
