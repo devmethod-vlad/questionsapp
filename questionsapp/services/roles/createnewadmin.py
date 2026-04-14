@@ -1,4 +1,4 @@
-from database import db
+from app.db.legacy_db import db
 import bcrypt
 from app.core.runtime_config import get_default_format
 from questionsapp.models import UserWikiInfo, UserManualInfo, UserBaseRole

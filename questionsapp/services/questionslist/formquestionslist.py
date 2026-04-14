@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from database import db
+from app.db.legacy_db import db
 
 from app.repositories.questions_list_repository import SqlAlchemyQuestionsListRepository
 from app.services.questions_list_service import QuestionsListService

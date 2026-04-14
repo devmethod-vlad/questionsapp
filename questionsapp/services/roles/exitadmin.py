@@ -1,5 +1,5 @@
 from questionsapp.models import UserBaseRole
-from database import db
+from app.db.legacy_db import db
 from app.core.runtime_config import get_base_roles
 
 def exit_admin(userid):
