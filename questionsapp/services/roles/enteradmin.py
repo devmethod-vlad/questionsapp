@@ -2,7 +2,7 @@ from database import db
 from questionsapp.models import UserManualInfo, UserBaseRole, AccessToken
 import bcrypt, secrets
 from app.core.runtime_config import get_default_format
-from questionsapp.services.user.userinfo import set_user_info
+from app.services.auth.user_info_service import set_user_info
 
 
 def enter_admin(login, password, userid):

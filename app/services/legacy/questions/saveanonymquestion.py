@@ -2,7 +2,7 @@ from app.db.legacy_db import db
 from questionsapp.models import AppConfig, User, Spaces, OrderMess
 from questionsapp.models import OrderStatus, OrderSpace, AnonymOrder, AnonymOrderInfo
 from questionsapp.models import OrderUnionRole
-from questionsapp.services.auxillary.telegram import _tg_post
+from app.services.common.telegram import tg_post
 import datetime
 from app.core.legacy_runtime import legacy_app as app
 from pytz import timezone
@@ -118,7 +118,7 @@ def _send_new_anonym_question_notification(new_question_id, space_title):
         tel_message = '💡 <b>Новый вопрос </b><em>' + str(new_question_id) + '</em><b> :</b>\n\n🗂 <b>По разделу: </b><em>' + space_title + '</em>\n<b>Время: </b><em>' + now_time.strftime(
             "%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a></b>'
         try:
-            _tg_post(
+            tg_post(
                 app.config['TEL_SENDMESS_URL'],
                 json_body={
                     'chat_id': app.config['TEL_INFO_CHAT'],

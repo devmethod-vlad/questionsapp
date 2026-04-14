@@ -18,7 +18,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from pytz import timezone
 
 from app.core.runtime_config import get_config_value
-from questionsapp.services.auxillary.telegram import _tg_post
+from app.services.common.telegram import tg_post
 from questionsapp.models import (
     AnswerAttachment,
     AnswerTelegramAttachment,
@@ -246,7 +246,7 @@ class AdminLegacyCompatService:
         if not action or chatid in (None, ""):
             return {"status": "error", "error_mess": "WARN: No params"}
 
-        _tg_post(
+        tg_post(
             get_config_value("TEL_SENDMESS_URL"),
             json_body={
                 "chat_id": chatid,

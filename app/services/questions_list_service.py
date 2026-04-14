@@ -29,7 +29,7 @@ from app.services.questions_list_helpers import (
     is_numeric_search,
     validate_questions_list_params,
 )
-from questionsapp.services.user.checkusertoken import check_user_token
+from app.services.auth.user_token_service import check_user_token
 from supp_db.queries.questions import (
     ALL_SPACES_QUERY,
     feedback_query,

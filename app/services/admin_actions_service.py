@@ -15,7 +15,7 @@ import bcrypt
 from app.core.runtime_config import get_base_roles, get_default_format, get_null_space
 from app.repositories.admin_repository import SqlAlchemyAdminRepository
 from app.services.legacy.roles.getrole import get_role
-from questionsapp.services.user.userinfo import set_user_info
+from app.services.auth.user_info_service import set_user_info
 
 
 @dataclass(slots=True)

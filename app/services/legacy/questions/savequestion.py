@@ -5,7 +5,7 @@ from questionsapp.models import OrderMess, OrderStatus, OrderSpace, Spaces, TelC
 from questionsapp.models import AppConfig, AnswerMess, UserTelegramInfo, Attachment, User
 from questionsapp.models import OrderAttachment, SpaceUnionRole, UnionRole, UserBaseRole, SpaceUnionRoleActive
 from questionsapp.models import TelegramTempMess, FeedbackQuestion
-from questionsapp.services.auxillary.telegram import _tg_post
+from app.services.common.telegram import tg_post
 from app.core.legacy_runtime import legacy_app as app
 from pytz import timezone
 from app.services.legacy.roles.getrole import get_role
@@ -116,7 +116,7 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
         tel_message = '💡 <b>Новое сообщение с обратной связью </b><em>' + str(question_id) + '</em><b> :</b>\n\n🎯 <b>Источник: </b><em>Веб-версия</em>\n<b>Время: </b><em>' + now_time.strftime("%d-%m-%Y, %H:%M") + '</em> \n\n<b><a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a></b>'
 
     try:
-        _tg_post(
+        tg_post(
             app.config['TEL_SENDMESS_URL'],
             json_body={
                 'chat_id': app.config['TEL_INFO_CHAT'],
@@ -131,7 +131,7 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
 
     if check_tel_chat is not None:
         try:
-            _tg_post(
+            tg_post(
                 app.config['TEL_SENDMESS_URL'],
                 json_body={
                     'chat_id': check_tel_chat.chatid,
@@ -158,7 +158,7 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
 
     user_message = '💡 <b>Пользователь обновил вопрос № ' + str(question_id) + '</b>'
     try:
-        req = _tg_post(
+        req = tg_post(
             app.config['TEL_SENDMESS_URL'],
             json_body={
                 'chat_id': check_user_telinfo.tlgmid,
@@ -184,7 +184,7 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
 def _send_space_change_notification(question_id, space_title):
     try:
         user_message = '💡 <b>Вопрос № ' + str(question_id) + '\nПривязан к пространству: <em>' + space_title + '</em></b>\n\n<a href = "' + app.config['QUESTIONS_MAIN_PAGE'] + '">Перейти</a>'
-        _tg_post(
+        tg_post(
             app.config['TEL_SENDMESS_URL'],
             json_body={
                 'chat_id': app.config['TEL_INFO_CHAT'],
