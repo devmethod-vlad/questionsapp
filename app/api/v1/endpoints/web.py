@@ -6,6 +6,7 @@ for existing infrastructure integrations.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
@@ -13,12 +14,21 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
-from app.core.config import Config, settings
-from app.core.legacy_runtime import runtime_context
+from app.core.settings import get_settings
+from app.db.engine import SessionFactory
 from app.db.models import AnonymOrder, OrderMess, UserTelegramInfo
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+settings = get_settings()
+
+
+@contextmanager
+def runtime_context():
+    try:
+        yield
+    finally:
+        SessionFactory.remove()
 
 
 @router.get("/test/")
@@ -35,92 +45,92 @@ def _send_file(directory: str | Path, filename: str) -> FileResponse:
 
 @router.get("/static/main/js/{filename:path}")
 def questions_static_main_js(filename: str):
-    return _send_file(Config.MAIN_JS_FOLDER, filename)
+    return _send_file(settings.main_js_folder, filename)
 
 
 @router.get("/static/main/css/{filename:path}")
 def questions_static_main_css(filename: str):
-    return _send_file(Config.MAIN_CSS_FOLDER, filename)
+    return _send_file(settings.main_css_folder, filename)
 
 
 @router.get("/static/main/imgs/{filename:path}")
 def questions_static_main_imgs(filename: str):
-    return _send_file(Config.MAIN_IMGS_FOLDER, filename)
+    return _send_file(settings.main_imgs_folder, filename)
 
 
 @router.get("/static/webappauth/js/{filename:path}")
 def webappauth_static_js(filename: str):
-    return _send_file(Config.WEBAPPAUTH_JS_FOLDER, filename)
+    return _send_file(settings.webappauth_js_folder, filename)
 
 
 @router.get("/static/webappauth/css/{filename:path}")
 def webappauth_static_css(filename: str):
-    return _send_file(Config.WEBAPPAUTH_CSS_FOLDER, filename)
+    return _send_file(settings.webappauth_css_folder, filename)
 
 
 @router.get("/static/webappauth/imgs/{filename:path}")
 def webappauth_static_imgs(filename: str):
-    return _send_file(Config.WEBAPPAUTH_IMGS_FOLDER, filename)
+    return _send_file(settings.webappauth_imgs_folder, filename)
 
 
 @router.get("/static/webapp/js/{filename:path}")
 def webapp_static_js(filename: str):
-    return _send_file(Config.WEBAPPMAIN_JS_FOLDER, filename)
+    return _send_file(settings.webappmain_js_folder, filename)
 
 
 @router.get("/static/webapp/css/{filename:path}")
 def webapp_static_css(filename: str):
-    return _send_file(Config.WEBAPPMAIN_CSS_FOLDER, filename)
+    return _send_file(settings.webappmain_css_folder, filename)
 
 
 @router.get("/static/webapp/imgs/{filename:path}")
 def webapp_static_imgs(filename: str):
-    return _send_file(Config.WEBAPPMAIN_IMGS_FOLDER, filename)
+    return _send_file(settings.webappmain_imgs_folder, filename)
 
 
 @router.get("/static/webappanonymviewer/js/{filename:path}")
 def wappanonymviewer_static_js(filename: str):
-    return _send_file(Config.WAPPANONYMVIEWER_JS_FOLDER, filename)
+    return _send_file(settings.wappanonymviewer_js_folder, filename)
 
 
 @router.get("/static/webappanonymviewer/css/{filename:path}")
 def wappanonymviewer_static_css(filename: str):
-    return _send_file(Config.WAPPANONYMVIEWER_CSS_FOLDER, filename)
+    return _send_file(settings.wappanonymviewer_css_folder, filename)
 
 
 @router.get("/static/webappanonymviewer/imgs/{filename:path}")
 def wappanonymviewer_static_imgs(filename: str):
-    return _send_file(Config.WAPPANONYMVIEWER_IMGS_FOLDER, filename)
+    return _send_file(settings.wappanonymviewer_imgs_folder, filename)
 
 
 @router.get("/static/js/{filename:path}")
 def questions_static_js(filename: str):
-    return _send_file(Config.JS_FOLDER, filename)
+    return _send_file(settings.js_folder, filename)
 
 
 @router.get("/static/fonts/{filename:path}")
 def questions_static_fonts(filename: str):
-    return _send_file(Config.FONTS_FOLDER, filename)
+    return _send_file(settings.fonts_folder, filename)
 
 
 @router.get("/static/css/{filename:path}")
 def questions_static_css(filename: str):
-    return _send_file(Config.CSS_FOLDER, filename)
+    return _send_file(settings.css_folder, filename)
 
 
 @router.get("/static/imgs/{filename:path}")
 def questions_static_imgs(filename: str):
-    return _send_file(Config.IMGS_SRC, filename)
+    return _send_file(settings.imgs_src, filename)
 
 
 @router.get("/static/attachments/orders/{userid}/{orderid}/{filename:path}")
 def show_orders_attachments(userid: int, orderid: int, filename: str):
-    return _send_file(Path(Config.QUESTION_ATTACHMENTS) / str(userid) / str(orderid), filename)
+    return _send_file(Path(settings.question_attachments_dir) / str(userid) / str(orderid), filename)
 
 
 @router.get("/static/attachments/answers/{userid}/{orderid}/{filename:path}")
 def show_answers_attachments(userid: int, orderid: int, filename: str):
-    return _send_file(Path(Config.ANSWER_ATTACHMENTS) / str(userid) / str(orderid), filename)
+    return _send_file(Path(settings.answer_attachments_dir) / str(userid) / str(orderid), filename)
 
 
 @router.get("/main/", response_class=HTMLResponse)
