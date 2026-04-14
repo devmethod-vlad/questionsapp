@@ -1,9 +1,11 @@
 import cx_Oracle
 
-from app.core.runtime_config import get_config_value
+from app.core.settings import get_settings
+
+SETTINGS = get_settings()
 
 dsn = cx_Oracle.makedsn(
-    host=get_config_value('ETD2_DB_HOST'),
-    port=get_config_value('ETD2_DB_PORT'),
-    service_name=get_config_value('ETD2_DB_SERVICENAME'),
+    host=SETTINGS.etd2_db_host,
+    port=SETTINGS.etd2_db_port,
+    service_name=SETTINGS.etd2_db_servicename,
 )

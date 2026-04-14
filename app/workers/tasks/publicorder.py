@@ -6,7 +6,7 @@ from celery import shared_task
 from pytz import timezone
 from sqlalchemy import and_, desc
 
-from app.core.runtime_config import get_runtime_config_class
+from app.core.settings import get_settings
 from app.db.legacy_db import db
 from app.integrations import ConfluenceGateway
 from app.db.models import (
@@ -24,7 +24,7 @@ from app.db.models import (
     UnionRole,
 )
 
-CONFIG = get_runtime_config_class()
+SETTINGS = get_settings()
 
 
 east = timezone('Europe/Moscow')
@@ -113,8 +113,8 @@ def _set_public_active(value):
 
 def _create_confluence_client():
     gateway = ConfluenceGateway(
-        base_url=CONFIG.CONFLUENCE_URL,
-        bearer_token=CONFIG.IAC_BOT_TOKEN,
+        base_url=SETTINGS.confluence_url,
+        bearer_token=SETTINGS.iac_bot_token,
     )
     return gateway.create_client()
 
@@ -134,7 +134,7 @@ def _get_order_attachments(order_id, user_id):
         attachment = Attachment.query.filter_by(id=attach_item.attachid).first()
         if attachment.public == 1:
             attachments.append(
-                _build_attachment_url(CONFIG.QUESTION_ATTACHMENTS, user_id, order_id, attachment.path)
+                _build_attachment_url(SETTINGS.question_attachments_dir, user_id, order_id, attachment.path)
             )
     return attachments
 
@@ -148,7 +148,7 @@ def _get_answer_attachments(answer_id, order_id, user_id):
         attachment = Attachment.query.filter_by(id=answer_attachment.attachid).first()
         if attachment.public == 1:
             attachments.append(
-                _build_attachment_url(CONFIG.ANSWER_ATTACHMENTS, user_id, order_id, attachment.path)
+                _build_attachment_url(SETTINGS.answer_attachments_dir, user_id, order_id, attachment.path)
             )
     return attachments
 
@@ -197,9 +197,9 @@ def _build_table_header(role_out_flag):
 
 
 def _get_public_page(confluence, space):
-    if CONFIG.FLASK_ENV == 'production':
+    if SETTINGS.flask_env == 'production':
         return confluence.get_page_by_title(space, QUESTION_TITLE, 0, 1, expand='body.storage.value')
-    return confluence.get_page_by_id(CONFIG.CONFLUENCE_PUBLIC_TESTPAGE_ID, expand='body.storage.value')
+    return confluence.get_page_by_id(SETTINGS.confluence_public_testpage_id, expand='body.storage.value')
 
 
 def _delete_page_attachments(confluence, page_id):

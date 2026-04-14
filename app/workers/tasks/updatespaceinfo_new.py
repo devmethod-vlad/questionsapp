@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 from celery import shared_task
 from celery.signals import after_setup_logger
 
-from app.core.runtime_config import get_runtime_config_class
+from app.core.constants import NULLSPACE
+from app.core.settings import get_settings
 from app.integrations import ConfluenceGateway
 from app.db.legacy_db import db
 from app.db.models import (
@@ -29,12 +30,12 @@ from supp_db.supp_connection import dsn
 
 
 
-CONFIG = get_runtime_config_class()
+SETTINGS = get_settings()
 # ==========
 # Константы
 # ==========
-NULL_SPACE_KEY = "nullspacekey"
-NULL_SPACE_TITLE = "Не распределено"
+NULL_SPACE_KEY = NULLSPACE["spacekey"]
+NULL_SPACE_TITLE = NULLSPACE["title"]
 LOG_PREFIX = "[SpaceInfoUpdate] "
 
 F_PUBLISHED = "Опубликовано на Viewport"
@@ -89,10 +90,10 @@ def get_session() -> Session:
 # ======================
 def get_supp_roles() -> Dict[int, str]:
     try:
-        if CONFIG.FLASK_ENV == "production":
+        if SETTINGS.flask_env == "production":
             with cx_Oracle.connect(
-                user=CONFIG.ETD2_DB_USERNAME,
-                password=CONFIG.ETD2_DB_PASS,
+                user=SETTINGS.etd2_db_username,
+                password=SETTINGS.etd2_db_pass,
                 dsn=dsn,
                 encoding="UTF-8",
                 nencoding="UTF-8",
@@ -108,10 +109,10 @@ def get_supp_roles() -> Dict[int, str]:
 
 def fetch_confluence_spaceinfo() -> List[Dict[str, Any]]:
     try:
-        url = CONFIG.CONFLUENCE_SPACEINFO_PAGE
+        url = SETTINGS.confluence_spaceinfo_page
         payload = ConfluenceGateway(
-            base_url=CONFIG.CONFLUENCE_URL,
-            bearer_token=CONFIG.IAC_BOT_TOKEN,
+            base_url=SETTINGS.confluence_url,
+            bearer_token=SETTINGS.iac_bot_token,
         ).get_storage_page(url=url)
         body_html = payload["body"]["storage"]["value"]
 
@@ -486,7 +487,7 @@ def update_spaces_info(self) -> Dict[str, Any]:
             active_space_keys,
             rows_with_error,
         ) = parse_source_rows(source_rows)
-        if rows_with_error and CONFIG.FLASK_ENV == "development":
+        if rows_with_error and SETTINGS.flask_env == "development":
             logger.warning(
                 LOG_PREFIX + "Ошибки при обработке строк таблицы пространств: "
                 + ", ".join(rows_with_error)
