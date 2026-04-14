@@ -1,4 +1,4 @@
-from app.db.legacy_db import db
+from app.db.engine import SessionFactory
 from app.db.models import AppConfig, OrderPublic, UserBaseRole
 from app.services.legacy.questions.savequestion import save_question
 from app.services.legacy.questions.saveanswer import save_answer
@@ -37,12 +37,12 @@ def save_combine(params):
                             check_public = OrderPublic.query.filter_by(orderid=int(question_id)).first()
 
                             if check_public:
-                                db.session.delete(check_public)
-                                db.session.commit()
+                                SessionFactory().delete(check_public)
+                                SessionFactory().commit()
 
                             new_public = OrderPublic(orderid=int(question_id))
-                            db.session.add(new_public)
-                            db.session.commit()
+                            SessionFactory().add(new_public)
+                            SessionFactory().commit()
 
                             if int(os.getenv('PROD')) == 1:
                                 publicOrder.delay(question_id)

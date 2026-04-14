@@ -1,4 +1,4 @@
-from app.db.legacy_db import db
+from app.db.engine import SessionFactory
 import datetime
 import os
 from app.db.models import OrderMess, OrderStatus, OrderSpace, Spaces, TelChatInfoSpace, OrderUnionRole
@@ -177,8 +177,8 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
             if send_resp['ok']:
                 messid = send_resp['result']['message_id']
                 new_mess = TelegramTempMess(telid=str(check_user_telinfo.tlgmid), messid=str(messid))
-                db.session.add(new_mess)
-                db.session.commit()
+                SessionFactory().add(new_mess)
+                SessionFactory().commit()
 
     except Exception as e:
         print(str(e))
@@ -244,7 +244,7 @@ def save_question(params):
                     if check_order.text != message:
                         is_question_text_change = True
                         check_order.text = message
-                        db.session.add(check_order)
+                        SessionFactory().add(check_order)
             else:
                 space_id, space_title = _resolve_space(spacekey)
                 duplicate_question = _find_recent_duplicate_question(userid=userid, message=message,
@@ -255,12 +255,12 @@ def save_question(params):
                     question_userid = duplicate_question.userid
                 else:
                     new_question = OrderMess(userid=int(userid), text=message)
-                    db.session.add(new_question)
-                    db.session.flush()
+                    SessionFactory().add(new_question)
+                    SessionFactory().flush()
 
                     if isfeedback == 1:
                         new_fq = FeedbackQuestion(orderid=new_question.id)
-                        db.session.add(new_fq)
+                        SessionFactory().add(new_fq)
 
                     new_flag = True
                     question_userid = int(userid)
@@ -271,7 +271,7 @@ def save_question(params):
                     else:
                         new_quest_status = OrderStatus(orderid=new_question.id,
                                                        statusid=QUESTION_STATUS['create']['id'])
-                    db.session.add(new_quest_status)
+                    SessionFactory().add(new_quest_status)
 
             check_space = OrderSpace.query.filter_by(orderid=int(question_id)).first()
 
@@ -284,16 +284,16 @@ def save_question(params):
                         is_space_change = True
 
                     check_space.spaceid = int(space_id)
-                    db.session.add(check_space)
+                    SessionFactory().add(check_space)
                 else:
                     new_quest_space = OrderSpace(orderid=int(question_id), spaceid=int(space_id))
-                    db.session.add(new_quest_space)
+                    SessionFactory().add(new_quest_space)
                     if not new_flag:
                         is_space_change = True
             else:
                 if check_space is None:
                     new_quest_space = OrderSpace(orderid=int(question_id), spaceid=space_id)
-                    db.session.add(new_quest_space)
+                    SessionFactory().add(new_quest_space)
                     if not new_flag:
                         is_space_change = True
 
@@ -310,7 +310,7 @@ def save_question(params):
             else:
                 if len(space_unionroles_id) > 0:
                     new_space_active = SpaceUnionRoleActive(spaceid=space_id, active=1)
-                    db.session.add(new_space_active)
+                    SessionFactory().add(new_space_active)
                     space_active = True
 
             check_unionrole = OrderUnionRole.query.filter_by(orderid=question_id).first()
@@ -323,10 +323,10 @@ def save_question(params):
 
                 if check_unionrole is not None:
                     check_unionrole.unionroleid = question_unionrole_id
-                    db.session.add(check_unionrole)
+                    SessionFactory().add(check_unionrole)
                 else:
                     new_quest_unionrole = OrderUnionRole(orderid=question_id, unionroleid=question_unionrole_id)
-                    db.session.add(new_quest_unionrole)
+                    SessionFactory().add(new_quest_unionrole)
             else:
                 if space_id == int(NULLSPACE['id']) and new_flag:
                     if unionroleid:
@@ -334,10 +334,10 @@ def save_question(params):
                             check_unionrole = UnionRole.query.filter_by(id=int(unionroleid)).first()
                             if check_unionrole is not None:
                                 new_unionrole = OrderUnionRole(orderid=question_id, unionroleid=int(unionroleid))
-                                db.session.add(new_unionrole)
+                                SessionFactory().add(new_unionrole)
                 else:
                     if check_unionrole is not None:
-                        db.session.delete(check_unionrole)
+                        SessionFactory().delete(check_unionrole)
 
             quest_user_role_rec = UserBaseRole.query.filter_by(userid=int(question_userid)).first()
             question_user_role = get_role(quest_user_role_rec.roleid)
@@ -397,12 +397,12 @@ def save_question(params):
                         elif file_ext in EXT_DICT['animExtension']:
                             attach_type = 'animation'
                         new_attach = Attachment(type=attach_type, path=filename, caption='', public=1)
-                        db.session.add(new_attach)
-                        db.session.flush()
+                        SessionFactory().add(new_attach)
+                        SessionFactory().flush()
                         new_quest_attach = OrderAttachment(attachid=new_attach.id, orderid=question_id)
-                        db.session.add(new_quest_attach)
+                        SessionFactory().add(new_quest_attach)
 
-            db.session.commit()
+            SessionFactory().commit()
 
             attachments = _build_attachments(question_id)
 
@@ -424,6 +424,6 @@ def save_question(params):
             return {'status': 'error', 'error_mess': 'WARN: No params'}
 
     except Exception as e:
-        db.session.rollback()
+        SessionFactory().rollback()
         print(str(e))
         return {'status': 'ok', 'error_mess': str(e)}
