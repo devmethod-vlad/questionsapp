@@ -1,5 +1,8 @@
 # План финальной очистки проекта после миграции на FastAPI
 
+> **Status (2026-04-14):** Historical planning document. Several bridge-related items are already completed in code; use it as archive/backlog context, not as current architecture source.
+
+
 Цель: полностью убрать наследие Flask, собрать весь production-код в `app/`, и при этом **не менять внешние API-контракты** (URL, формат входов/выходов, коды ответов).
 
 ---

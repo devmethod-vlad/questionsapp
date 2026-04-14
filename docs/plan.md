@@ -1,5 +1,8 @@
 ### Task 1
 
+> **Status (2026-04-14):** Historical planning document. Several bridge-related items are already completed in code; use it as archive/backlog context, not as current architecture source.
+
+
 **Title:** `[Cleanup] Remove current_app-based config helpers from app runtime`
 
 **Context:**

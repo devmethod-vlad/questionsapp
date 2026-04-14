@@ -29,9 +29,9 @@
 
 ## 4. Данные и lifecycle
 
-- [x] Реализован lifecycle dependency для legacy SQLAlchemy session.
+- [x] Реализован request-scoped lifecycle dependency для SQLAlchemy session.
 - [x] Rollback/remove выполняются централизованно в dependency.
-- [x] Временная интеграция с legacy сервисами изолирована в `app/services/legacy_bridge.py`.
+- [x] Transitional bridge/shim слой удалён; active runtime не зависит от `legacy_bridge` и `questionsapp/services/*` wrappers.
 
 ## 5. Операционная готовность
 

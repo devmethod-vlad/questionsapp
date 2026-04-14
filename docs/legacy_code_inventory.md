@@ -8,9 +8,10 @@
 | Source | Status | Owner | Target date | Notes |
 |---|---|---|---|---|
 | `questionsapp/routes.py` | Delete (после полной декомиссии Flask entrypoint) | backend | 2026-04-30 | Оставлен как legacy-совместимость на период cutover. |
-| `questionsapp/services/questions/*` | **Migrate (wave-1 completed)** | backend | 2026-04-13 | Перенесено в `app/services/legacy/questions/*`, старые файлы — import shims. |
+| `questionsapp/services/questions/*` | **Deleted (cleanup completed)** | backend | 2026-04-14 | Transitional import shims удалены после проверки отсутствия active references. |
 | `questionsapp/services/roles/getrole.py` | **Migrate (wave-1 completed)** | backend | 2026-04-13 | Перенесено в `app/services/legacy/roles/getrole.py`, старый файл — shim. |
-| `questionsapp/services/{attachments,appconfig,auxillary,questionslist,roles,stats,user,status}/*` | Migrate (planned) | backend | 2026-05-15 | Дальнейший перенос по доменам без изменения API-контрактов. |
+| `questionsapp/services/{attachments,appconfig,auxillary,roles,stats,user}/*` | Migrate (planned) | backend | 2026-05-15 | Дальнейший перенос по доменам без изменения API-контрактов. |
+| `questionsapp/services/{questionslist,status}/*` | **Deleted (cleanup completed)** | backend | 2026-04-14 | Legacy wrappers/orphan helpers удалены как неиспользуемые в active runtime. |
 | `supp_db/*` | Keep as infra (temporary) | backend + dba | 2026-05-01 | Вынести SQL-код в `app/repositories/` по приоритету сценариев. |
 | `database.py` | Migrate | backend | 2026-05-01 | Переместить в `app/db/` после консолидации session lifecycle. |
 | `config.py` (root) | Delete (после единого config source) | backend | 2026-05-01 | Дубликат runtime-конфигурации, целевой источник `app/core/config.py`. |
@@ -39,10 +40,10 @@
    `app/services/legacy/questions/*`.
 2. Перенесен helper `roles/getrole.py` в `app/services/legacy/roles/getrole.py`.
 3. Обновлены импорты в FastAPI bridge и связанных legacy-модулях на новый namespace `app.services.legacy.*`.
-4. Для Flask-legacy entrypoint оставлены совместимые shim-файлы в `questionsapp/services/*`,
-   которые только реэкспортируют реализацию из `app/`.
+4. Совместимые shim-файлы `questionsapp/services/questions/*` удалены после проверки,
+   что active runtime и import graph используют только `app/*` namespace.
 
 ### Definition of Done for wave-1
 - В проекте одна активная реализация question-domain логики — в `app/services/legacy/questions/*`.
-- Legacy namespace используется только как временный слой совместимости импорта.
+- Transitional import-shim слой в `questionsapp/services/questions/*` удалён; runtime использует `app/*`.
 - API-контракт не изменен, так как бизнес-логика и response envelopes не переписывались.

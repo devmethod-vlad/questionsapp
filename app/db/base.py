@@ -1,4 +1,4 @@
-"""Declarative base and legacy-style query support for ORM models."""
+"""Declarative base for ORM models."""
 
 from sqlalchemy.orm import declarative_base
 
