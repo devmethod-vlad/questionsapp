@@ -12,8 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
-from app.repositories.questions_repository import QuestionsReadRepository
-
 from fastapi import UploadFile
 
 from questionsapp.services.appconfig.getappconfig import get_appconfig_info
@@ -23,7 +21,6 @@ from questionsapp.services.attachments.deleteattachment import delete_attachment
 from questionsapp.services.auxillary.getrolesbyspace import get_roles_by_space
 from questionsapp.services.auxillary.telegram import _tg_post
 from app.services.legacy.questions.execaction import exec_action
-from app.services.legacy.questions.get_questions_api import get_questions_api_data
 from app.services.legacy.questions.saveanonymquestion import save_anonym_question
 from app.services.legacy.questions.savecombine import save_combine
 from app.services.legacy.questions.savequestion import save_question
@@ -106,27 +103,6 @@ def runtime_unavailable_response() -> tuple[dict[str, str], int]:
 
 class LegacyServiceAdapter:
     """Facade for legacy handlers callable from FastAPI routers."""
-
-    @staticmethod
-    def get_questions_api(
-        *,
-        page: int,
-        page_count: int,
-        public_only: bool,
-        repository: QuestionsReadRepository,
-    ):
-        try:
-            get_legacy_flask_app()
-        except LegacyRuntimeUnavailable:
-            return [], 0
-        with flask_context():
-            records, total_count = get_questions_api_data(
-                page=page,
-                page_count=page_count,
-                public_only=public_only,
-                repository=repository,
-            )
-        return records, total_count
 
     @staticmethod
     def form_questions_list(payload: dict[str, Any]):

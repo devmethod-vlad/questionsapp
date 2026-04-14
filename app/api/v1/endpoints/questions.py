@@ -30,23 +30,15 @@ def questions_api(
     questions_service: Annotated[QuestionsService, Depends(get_questions_service)],
 ):
     try:
-        parsed_page_count = int(query.page_count)
-        if parsed_page_count < 1:
-            parsed_page_count = 100
-        if parsed_page_count > 500:
-            parsed_page_count = 500
-
-        parsed_page = int(query.page)
-        if parsed_page < 1:
-            parsed_page = 1
+        records, total_count = questions_service.get_public_questions(
+            page=query.page,
+            page_count=query.page_count,
+            public_only=(query.publicorder == "1"),
+        )
     except ValueError:
         return error("Invalid pagination parameters; must be integers.", status_code=400)
 
-    records, total_count = questions_service.get_public_questions(
-        page=parsed_page,
-        page_count=parsed_page_count,
-        public_only=(query.publicorder == "1"),
-    )
+    parsed_page = max(1, int(query.page))
     return paginated_questions(count=total_count, page_count=len(records), page=parsed_page, data=records)
 
 
