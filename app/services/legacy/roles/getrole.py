@@ -1,8 +1,12 @@
-from flask import current_app as app
+"""Role lookup helpers preserved for legacy-compatible payload generation."""
+
+from __future__ import annotations
+
+from app.core.runtime_config import get_base_roles
 
 def get_role(roleid):
-    for item in app.config['BASE_ROLE']:
-        if app.config['BASE_ROLE'][item]['id'] == int(roleid):
+    base_roles = get_base_roles()
+    for item in base_roles:
+        if base_roles[item]["id"] == int(roleid):
             return item
     return None
-
