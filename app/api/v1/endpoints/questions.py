@@ -45,9 +45,10 @@ def questions_api(
 @router.post("/questionslist/")
 def questions_list(
     payload: QuestionsListPayload,
+    questions_service: Annotated[QuestionsService, Depends(get_questions_service)],
     _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
-    response, status_code = QuestionsService.get_questions_list(payload.model_dump())
+    response, status_code = questions_service.get_questions_list(payload.model_dump())
     return ok(response, status_code=status_code)
 
 
