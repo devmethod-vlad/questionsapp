@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from questionsapp.models import Attachment, AnswerAttachment, OrderAttachment, OrderStatus, UserBaseRole
+from app.db.models import Attachment, AnswerAttachment, OrderAttachment, OrderStatus, UserBaseRole
 from app.services.sql.read_sql_tmpfile import read_sql_tmpfile
 
 

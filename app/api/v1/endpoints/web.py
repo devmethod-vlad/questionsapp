@@ -15,7 +15,7 @@ from starlette.requests import Request
 
 from app.core.config import Config, settings
 from app.core.legacy_runtime import runtime_context
-from questionsapp.models import AnonymOrder, OrderMess, UserTelegramInfo
+from app.db.models import AnonymOrder, OrderMess, UserTelegramInfo
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")

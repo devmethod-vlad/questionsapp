@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from questionsapp.models import BaseRole, User, UserBaseRole, UserEmiasInfo, UserManualInfo, UserTelegramInfo, UserWikiInfo
+from app.db.models import BaseRole, User, UserBaseRole, UserEmiasInfo, UserManualInfo, UserTelegramInfo, UserWikiInfo
 
 
 def set_user_info(userid: int, onlyreginfo: bool = False) -> dict:

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from questionsapp.models import (
+from app.db.models import (
     AccessToken,
     AppConfig,
     SpaceUnionRole,

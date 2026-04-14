@@ -19,7 +19,7 @@ from pytz import timezone
 
 from app.core.runtime_config import get_config_value
 from app.services.common.telegram import tg_post
-from questionsapp.models import (
+from app.db.models import (
     AnswerAttachment,
     AnswerTelegramAttachment,
     Attachment,

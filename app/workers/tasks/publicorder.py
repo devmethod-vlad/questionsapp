@@ -9,7 +9,7 @@ from sqlalchemy import and_, desc
 from app.core.runtime_config import get_runtime_config_class
 from app.db.legacy_db import db
 from app.integrations import ConfluenceGateway
-from questionsapp.models import (
+from app.db.models import (
     AnswerAttachment,
     AnswerMess,
     AppConfig,
