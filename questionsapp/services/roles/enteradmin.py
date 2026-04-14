@@ -1,7 +1,7 @@
 from database import db
 from questionsapp.models import UserManualInfo, UserBaseRole, AccessToken
 import bcrypt, secrets
-from flask import current_app as app
+from app.core.runtime_config import get_default_format
 from questionsapp.services.user.userinfo import set_user_info
 
 
@@ -9,7 +9,7 @@ def enter_admin(login, password, userid):
     if login and password and userid:
         check_admin = UserManualInfo.query.filter_by(login=login).first()
         if check_admin and check_admin.userid == int(userid):
-            if bcrypt.checkpw(password.encode(app.config['DEFAULT_FORMAT']), check_admin.password.encode('UTF-8')):
+            if bcrypt.checkpw(password.encode(get_default_format()), check_admin.password.encode('UTF-8')):
                 check_role = UserBaseRole.query.filter_by(userid=check_admin.userid).first()
                 check_role.roleid = 1
                 db.session.add(check_role)

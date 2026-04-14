@@ -1,6 +1,6 @@
 from questionsapp.models import UnionRole, SpaceUnionRole, UserUnionRole
 from app.services.legacy.roles.getrole import get_role
-from flask import current_app as app
+from app.core.runtime_config import get_null_space
 
 def get_roles_by_space(spaceid, roleid, userid):
 
@@ -27,7 +27,7 @@ def get_roles_by_space(spaceid, roleid, userid):
                 for item in UserUnionRole.query.filter(UserUnionRole.userid == int(userid)).all():
                     user_roles_idlist.append(item.unionroleid)
 
-                if int(spaceid) != app.config['NULLSPACE']['id']:
+                if int(spaceid) != int(get_null_space()['id']):
                     for item in SpaceUnionRole.query.filter(SpaceUnionRole.spaceid == int(spaceid)).all():
 
                         role_rec = UnionRole.query.filter_by(id=item.unionroleid).first()

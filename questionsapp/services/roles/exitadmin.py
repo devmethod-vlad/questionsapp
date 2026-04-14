@@ -1,6 +1,6 @@
 from questionsapp.models import UserBaseRole
 from database import db
-from flask import current_app as app
+from app.core.runtime_config import get_base_roles
 
 def exit_admin(userid):
     if userid:
@@ -8,8 +8,9 @@ def exit_admin(userid):
             check_role = UserBaseRole.query.filter_by(userid=int(userid)).first()
 
             if check_role is not None:
-                if check_role.roleid == int(app.config['BASE_ROLE']['admin']['id']):
-                    check_role.roleid = int(app.config['BASE_ROLE']['redactor']['id'])
+                base_roles = get_base_roles()
+                if check_role.roleid == int(base_roles['admin']['id']):
+                    check_role.roleid = int(base_roles['redactor']['id'])
                     db.session.commit()
                 return {'status': 'ok'}
             else:
