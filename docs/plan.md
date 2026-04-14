@@ -351,18 +351,48 @@ After all active flows are migrated, the bridge and Flask app factory should be 
 
 ---
 
-## Что я бы считал признаком, что Flask реально удалён
+### Task 10
 
-Не “мы почти всё перенесли”, а вот такой набор фактов:
+**Title:** `[Cleanup] Move active ORM models out of questionsapp namespace`
 
-* `app/api/*` не зовёт bridge
-* `app/services/*` не импортирует `flask`, `current_app`, `database.db`, `questionsapp.*`
-* `app/db/session.py` не зависит от Flask-SQLAlchemy
-* workers стартуют без Flask app factory
-* `questionsapp/` не содержит активного production runtime
-* `legacy_bridge.py` удалён
-* grep по runtime-пути не находит `from flask`, `current_app`, `db.init_app`, `create_app(`
+**Context:**
+FastAPI runtime and DB session lifecycle are already native, but active app modules still depend on `questionsapp.models`, which blocks deletion of the legacy package and keeps old namespace coupling alive.
 
-Вот тогда можно честно сказать: следы Flask исчезли.
+**Scope:**
 
-С практической точки зрения сейчас лучший первый удар — это добить `/questions_api/`, `get_role`, `transformstatuslist`, потом `spaceandroles`, и только затем лезть в write-flow. Это даст быстрый архитектурный прогресс без big bang.
+* `questionsapp/models.py`
+* `app/db/models.py` or `app/models/`
+* all active imports in `app/repositories/*`, `app/services/*`, `app/workers/*`
+
+**Implementation steps:**
+
+1. Create native models module under `app/db/`.
+2. Move ORM model definitions from `questionsapp.models` without changing table mapping or field names.
+3. Replace imports in active runtime modules from `questionsapp.models` to the new module.
+4. Keep legacy package untouched unless imports are fully migrated.
+5. Do not change API contracts or DB schema behavior.
+
+**Definition of Done:**
+
+* [ ] active runtime no longer imports `questionsapp.models`
+* [ ] `app/*` and `app/workers/*` use native model module
+* [ ] no HTTP contract changes
+* [ ] no task/worker behavior changes
+
+**Checks:**
+
+* `rg "questionsapp.models" app app/workers`
+* `uvicorn app.main:app --host 127.0.0.1 --port 8000`
+
+---
+
+### Task 11
+
+**Title:** `[Cleanup] Replace legacy question write handlers with native services`
+
+**Checks:**
+
+* `rg "app/services/legacy/questions" app`
+* `rg "legacy_app|legacy_db" app`
+
+---
