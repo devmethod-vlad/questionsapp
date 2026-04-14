@@ -1,4 +1,4 @@
-from database import db
+from app.db.legacy_db import db
 import os
 from questionsapp.models import Attachment, OrderAttachment, SyncAttachments
 from questionsapp.models import TelegramAttachment, OrderTelegramAttachment

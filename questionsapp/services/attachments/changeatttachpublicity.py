@@ -1,4 +1,4 @@
-from database import db
+from app.db.legacy_db import db
 from questionsapp.models import Attachment
 
 def change_attach_publicity(attachid, publicflag):
