@@ -2,7 +2,7 @@ import os, requests, json
 from questionsapp.models import OrderMess, OrderStatus, OrderSpace, UserBaseRole, AnswerAttachment, AnonymOrderInfo
 from questionsapp.models import AppConfig, OrdersInWork, AnswerMess, UserTelegramInfo, Attachment, AnonymOrder
 from questionsapp.models import TelegramTempMess
-from questionsapp.services.auxillary.telegram import _tg_post
+from app.services.common.telegram import tg_post
 from app.core.legacy_runtime import legacy_app as app
 from app.db.legacy_db import db
 from app.services.legacy.roles.getrole import get_role
@@ -177,7 +177,7 @@ def save_answer(params):
                             #               json={'chat_id': anon_quest_info.tlgmid, 'text': message,
                             #                     'reply_markup': markup, 'parse_mode': 'HTML'})
 
-                            req = _tg_post(
+                            req = tg_post(
                                 app.config['TEL_SENDMESS_URL'],
                                 json_body={
                                     'chat_id': anon_quest_info.tlgmid,
@@ -229,7 +229,7 @@ def save_answer(params):
                                 #               json={'chat_id': check_tel_info.tlgmid, 'text': message,
                                 #                     'reply_markup': markup, 'parse_mode': 'HTML'})
 
-                                req = _tg_post(
+                                req = tg_post(
                                     app.config['TEL_SENDMESS_URL'],
                                     json_body={
                                         'chat_id': check_tel_info.tlgmid,

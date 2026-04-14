@@ -13,7 +13,7 @@ from typing import Any
 from sqlalchemy import text
 
 from questionsapp.models import Attachment, AnswerAttachment, OrderAttachment, OrderStatus, UserBaseRole
-from questionsapp.services.auxillary.readsqltmpfile import read_sql_tmpfile
+from app.services.sql.read_sql_tmpfile import read_sql_tmpfile
 
 
 @dataclass(slots=True)
