@@ -1,6 +1,6 @@
 from database import db
 import bcrypt
-from flask import current_app as app
+from app.core.runtime_config import get_default_format
 from questionsapp.models import UserManualInfo
 
 def change_admin_pass(userid, adminpass):
@@ -10,8 +10,8 @@ def change_admin_pass(userid, adminpass):
             if checkManualRec is None:
                 return {"status": "error", "error_mess": "Admin doesn't exist"}
             else:
-                hashed = bcrypt.hashpw(adminpass.encode(app.config['DEFAULT_FORMAT']), bcrypt.gensalt())
-                checkManualRec.password = hashed.decode(app.config['DEFAULT_FORMAT'])
+                hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
+                checkManualRec.password = hashed.decode(get_default_format())
                 db.session.commit()
                 return {'status': 'ok'}
         except Exception as e:

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.config import BASE_ROLE, NULLROLE, NULLSPACE, QUESTION_STATUS, URL_PREFIX
+from app.core.config import BASE_ROLE, DEFAULT_FORMAT, NULLROLE, NULLSPACE, QUESTION_STATUS, URL_PREFIX
 
 
 def get_base_roles() -> dict[str, dict[str, Any]]:
@@ -42,3 +42,9 @@ def get_url_prefix() -> str:
     """Return URL prefix used by legacy-compatible API response fields."""
 
     return URL_PREFIX
+
+
+def get_default_format() -> str:
+    """Return default text encoding used by legacy password flows."""
+
+    return DEFAULT_FORMAT

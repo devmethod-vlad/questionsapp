@@ -14,21 +14,14 @@ from typing import Any, Iterator
 
 from fastapi import UploadFile
 
-from questionsapp.services.appconfig.getappconfig import get_appconfig_info
-from questionsapp.services.appconfig.updateconfig import update_app_config
 from questionsapp.services.attachments.changeatttachpublicity import change_attach_publicity
 from questionsapp.services.attachments.deleteattachment import delete_attachment
-from questionsapp.services.auxillary.getrolesbyspace import get_roles_by_space
 from questionsapp.services.auxillary.telegram import _tg_post
 from app.services.legacy.questions.execaction import exec_action
 from app.services.legacy.questions.saveanonymquestion import save_anonym_question
 from app.services.legacy.questions.savecombine import save_combine
 from app.services.legacy.questions.savequestion import save_question
 from questionsapp.services.questionslist.formquestionslist import find_question_in_list, form_questions_list
-from questionsapp.services.roles.changeadminpass import change_admin_pass
-from questionsapp.services.roles.createnewadmin import create_new_admin
-from questionsapp.services.roles.enteradmin import enter_admin
-from questionsapp.services.roles.exitadmin import exit_admin
 from questionsapp.services.stats.bot.getnewuser import get_newuser_stat
 from questionsapp.services.stats.bot.getphrazestat import get_phraze_stat
 from questionsapp.services.stats.bot.phrazesperdaystat import get_perdayphrazes_stat
@@ -116,15 +109,6 @@ class LegacyServiceAdapter:
             return as_jsonable(form_questions_list(payload))
 
     @staticmethod
-    def get_roles(payload: dict[str, Any]):
-        try:
-            get_legacy_flask_app()
-        except LegacyRuntimeUnavailable:
-            return runtime_unavailable_response()
-        with flask_context():
-            return as_jsonable(get_roles_by_space(payload.get("spaceid"), payload.get("roleid"), payload.get("userid")))
-
-    @staticmethod
     def save_or_update(action: str, payload: dict[str, Any]):
         try:
             get_legacy_flask_app()
@@ -153,18 +137,6 @@ class LegacyServiceAdapter:
                 return as_jsonable(change_attach_publicity(payload.get("attachid"), payload.get("publicflag")))
             if action == "deleteattachment":
                 return as_jsonable(delete_attachment(payload.get("attach_target"), payload.get("attachid"), payload.get("orderid"), payload.get("userid")))
-            if action == "createnewadmin":
-                return as_jsonable(create_new_admin(payload.get("edulogin"), payload.get("adminlogin"), payload.get("adminpass")))
-            if action == "changeadminpass":
-                return as_jsonable(change_admin_pass(payload.get("userid"), payload.get("adminpass")))
-            if action == "updateappconfig":
-                return as_jsonable(update_app_config(payload))
-            if action == "getappconfiginfo":
-                return as_jsonable(get_appconfig_info())
-            if action == "enteradmin":
-                return as_jsonable(enter_admin(payload.get("adminlogin"), payload.get("adminpass"), payload.get("userid")))
-            if action == "exitadmin":
-                return as_jsonable(exit_admin(payload.get("userid")))
             if action == "updtspacesbyconfl":
                 from app.workers.tasks.updatespaceinfo import update_spaces_info
 

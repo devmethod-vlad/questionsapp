@@ -1,6 +1,6 @@
 from database import db
 import bcrypt
-from flask import current_app as app
+from app.core.runtime_config import get_default_format
 from questionsapp.models import UserWikiInfo, UserManualInfo, UserBaseRole
 
 def create_new_admin(edulogin, adminlogin, adminpass):
@@ -15,9 +15,9 @@ def create_new_admin(edulogin, adminlogin, adminpass):
                         checkExistLogin = UserManualInfo.query.filter_by(login=adminlogin).first()
                         if checkExistLogin is None:
                             if len(adminlogin) > 4:
-                                hashed = bcrypt.hashpw(adminpass.encode(app.config['DEFAULT_FORMAT']), bcrypt.gensalt())
+                                hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
                                 newManUserInfo = UserManualInfo(userid=checkWikiInfo.userid, login=adminlogin,
-                                                                password=hashed.decode(app.config['DEFAULT_FORMAT']))
+                                                                password=hashed.decode(get_default_format()))
                                 db.session.add(newManUserInfo)
                                 db.session.commit()
                                 return {'status': 'ok'}
