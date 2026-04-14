@@ -2,11 +2,13 @@ from io import BytesIO
 
 import pandas as pd
 from celery import shared_task
-from flask import current_app as app
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 
+from app.core.runtime_config import get_runtime_config_class
 from app.integrations import TelegramGateway
+
+CONFIG = get_runtime_config_class()
 
 follower_sql = """
 select useminfo.emiaslogin as login,
@@ -19,9 +21,9 @@ join userpg on user_telegraminfo.userid = userpg.id where emiaslogin is not null
 
 @shared_task()
 def get_followers_excel(chatid):
-    telegram = TelegramGateway(token=app.config["TEL_TOKEN"])
+    telegram = TelegramGateway(token=CONFIG.TEL_TOKEN)
     try:
-        df = pd.read_sql(follower_sql, app.config['SQLALCHEMY_DATABASE_URI'])
+        df = pd.read_sql(follower_sql, CONFIG.SQLALCHEMY_DATABASE_URI)
         df = df.drop_duplicates(subset=['login'], keep='first')
         df.rename(columns={"login": "ЛОГИН", "fio": "ФИО", "telid": "ID Telegram", "telname": "USERNAME Telegram"},
                   inplace=True)

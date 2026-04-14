@@ -1,71 +1,27 @@
-"""Runtime accessors for migration-safe legacy configuration values.
+"""Framework-agnostic runtime config access helpers.
 
-This module provides framework-agnostic access to configuration constants that
-were historically read from ``flask.current_app.config``.
-
-The goal is to keep business behavior identical while removing hard dependency
-on Flask application context in native FastAPI runtime paths.
+This module centralizes environment-based config resolution for code paths
+that must work without Flask application context (e.g. Celery workers and
+background integrations).
 """
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
-from app.core.config import (
-    BASE_ROLE,
-    DEFAULT_FORMAT,
-    DEFAULT_RENDER_STATUSES,
-    NULLROLE,
-    NULLSPACE,
-    QUESTION_STATUS,
-    SHOW_ALL_SPACES_ITEM,
-    URL_PREFIX,
-)
+from app.core.config import Config, DevConfig, ProdConfig
+from app.core.env import get_env_bool
 
 
-def get_base_roles() -> dict[str, dict[str, Any]]:
-    """Return role mapping used by legacy role-related helpers."""
+@lru_cache(maxsize=1)
+def get_runtime_config_class() -> type[Config]:
+    """Return active runtime config class based on current environment."""
 
-    return BASE_ROLE
-
-
-def get_question_statuses() -> dict[str, dict[str, Any]]:
-    """Return status mapping used across question workflows."""
-
-    return QUESTION_STATUS
+    return ProdConfig if get_env_bool("PROD") else DevConfig
 
 
-def get_null_space() -> dict[str, Any]:
-    """Return placeholder space metadata used by question flows."""
+def get_config_value(key: str, default: Any = None) -> Any:
+    """Read config value from active runtime config class."""
 
-    return NULLSPACE
-
-
-def get_null_role() -> dict[str, Any]:
-    """Return placeholder role metadata used by question flows."""
-
-    return NULLROLE
-
-
-def get_url_prefix() -> str:
-    """Return URL prefix used by legacy-compatible API response fields."""
-
-    return URL_PREFIX
-
-
-def get_default_format() -> str:
-    """Return default text encoding used by legacy password flows."""
-
-    return DEFAULT_FORMAT
-
-
-def get_default_render_statuses() -> list[str]:
-    """Return default statuses rendered for questions list screen."""
-
-    return DEFAULT_RENDER_STATUSES
-
-
-def get_show_all_spaces_item() -> dict[str, Any]:
-    """Return synthetic first item for the spaces selector."""
-
-    return SHOW_ALL_SPACES_ITEM
+    return getattr(get_runtime_config_class(), key, default)
