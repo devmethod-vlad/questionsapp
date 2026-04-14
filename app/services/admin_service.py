@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from fastapi.responses import Response
+
 from app.repositories.admin_repository import SqlAlchemyAdminRepository
 from app.services.admin_actions_service import AdminActionsService
-from app.services.legacy_bridge import LegacyServiceAdapter
+from app.services.admin_legacy_compat_service import AdminLegacyCompatService
 from app.services.question_action_service import QuestionActionService
 
 
@@ -36,13 +38,20 @@ class AdminService:
         native_response = _admin_actions_service(session).execute_service_action(payload)
         if native_response is not None:
             return native_response, 200
-        legacy_adapter = LegacyServiceAdapter
-        return legacy_adapter.service_action(payload)
+
+        compat_response = AdminLegacyCompatService.execute_service_action(payload, session=session)
+        if compat_response is not None:
+            return compat_response, 200
+
+        return {"status": "error", "error_mess": "WARN: No valid action param"}, 200
 
     @staticmethod
-    def get_statistics(payload: dict[str, Any]):
-        return LegacyServiceAdapter.statistic(payload)
+    def get_statistics(payload: dict[str, Any], *, session) -> tuple[dict[str, Any], int] | Response:
+        response = AdminLegacyCompatService.get_statistics(payload, session=session)
+        if isinstance(response, Response):
+            return response
+        return response, 200
 
     @staticmethod
     def build_bot_excel(payload: dict[str, Any]):
-        return LegacyServiceAdapter.botexcel(payload)
+        return AdminLegacyCompatService.build_bot_excel(payload), 200

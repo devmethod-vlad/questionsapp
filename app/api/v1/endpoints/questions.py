@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi.responses import Response
 
 from app.db.session import RequestSessionContext, get_request_session_context
 from app.responses.builders import error, ok, paginated_questions
@@ -102,7 +103,7 @@ def service(
 @router.post("/statistic/")
 def statistic(
     payload: StatisticPayload,
-    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action:
         return error("WARN: No action param")
@@ -111,8 +112,12 @@ def statistic(
     if not payload.botstatskind or payload.botimeperiod not in (7, 30):
         return error("WARN: No params")
 
-    response, status_code = AdminService.get_statistics(payload.model_dump())
-    return ok(response, status_code=status_code)
+    response = AdminService.get_statistics(payload.model_dump(), session=session_context.session)
+    if isinstance(response, Response):
+        return response
+
+    payload_body, status_code = response
+    return ok(payload_body, status_code=status_code)
 
 
 @router.post("/botexcel/")
