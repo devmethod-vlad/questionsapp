@@ -31,7 +31,7 @@ class AdminService:
 
     @staticmethod
     def execute_service_action(payload: dict[str, Any], *, session):
-        question_action_response = QuestionActionService.execute(payload)
+        question_action_response = QuestionActionService.execute(payload, session=session)
         if question_action_response is not None:
             return question_action_response, 200
 

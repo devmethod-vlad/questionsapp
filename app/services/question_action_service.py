@@ -11,8 +11,7 @@ class QuestionActionService:
     """Handle service actions that mutate question state."""
 
     @staticmethod
-    def execute(payload: dict[str, Any]) -> dict[str, Any] | None:
+    def execute(payload: dict[str, Any], *, session) -> dict[str, Any] | None:
         if payload.get("action") != "execaction":
             return None
-        return exec_action(payload.get("execute_action"), payload.get("orderid"), payload.get("userid"))
-
+        return exec_action(payload.get("execute_action"), payload.get("orderid"), payload.get("userid"), session=session)

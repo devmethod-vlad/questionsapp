@@ -1,4 +1,3 @@
-from app.db.legacy_db import db
 import datetime
 import os
 from app.db.models import OrderMess, OrderStatus, OrderSpace, Spaces, TelChatInfoSpace, OrderUnionRole
@@ -11,6 +10,7 @@ from app.core.settings import get_settings
 from pytz import timezone
 from app.services.legacy.roles.getrole import get_role
 from app.services.files.uploads import UploadLike
+from sqlalchemy.orm import Session
 
 settings = get_settings()
 
@@ -41,10 +41,10 @@ def _normalize_spacekey(value):
     return None
 
 
-def _build_attachments(question_id):
+def _build_attachments(question_id, session: Session):
     attachments = []
-    for at_item in db.session.query(OrderAttachment).filter(OrderAttachment.orderid == int(question_id)).all():
-        attach_rec = db.session.query(Attachment).filter(Attachment.id == at_item.attachid).first()
+    for at_item in session.query(OrderAttachment).filter(OrderAttachment.orderid == int(question_id)).all():
+        attach_rec = session.query(Attachment).filter(Attachment.id == at_item.attachid).first()
         if attach_rec is not None:
             attachments.append({
                 'type': attach_rec.type,
@@ -55,12 +55,12 @@ def _build_attachments(question_id):
     return attachments
 
 
-def _resolve_space(spacekey):
+def _resolve_space(spacekey, session: Session):
     space_id = int(NULLSPACE['id'])
     space_title = NULLSPACE['title']
 
     if spacekey and spacekey != '0':
-        space_rec = db.session.query(Spaces).filter_by(spacekey=spacekey).first()
+        space_rec = session.query(Spaces).filter_by(spacekey=spacekey).first()
         if space_rec is not None:
             space_id = space_rec.id
             space_title = space_rec.title
@@ -68,14 +68,14 @@ def _resolve_space(spacekey):
     return space_id, space_title
 
 
-def _question_feedback_flag(orderid):
-    return db.session.query(FeedbackQuestion).filter_by(orderid=int(orderid)).first() is not None
+def _question_feedback_flag(orderid, session: Session):
+    return session.query(FeedbackQuestion).filter_by(orderid=int(orderid)).first() is not None
 
 
-def _find_recent_duplicate_question(userid, message, space_id, isfeedback):
+def _find_recent_duplicate_question(userid, message, space_id, isfeedback, session: Session):
     threshold = datetime.datetime.now() - datetime.timedelta(seconds=DUPLICATE_LOOKBACK_SECONDS)
     candidates = (
-        db.session.query(OrderMess)
+        session.query(OrderMess)
         .filter(
             OrderMess.userid == int(userid),
             OrderMess.text == message,
@@ -86,11 +86,11 @@ def _find_recent_duplicate_question(userid, message, space_id, isfeedback):
     )
 
     for candidate in candidates:
-        order_space = db.session.query(OrderSpace).filter_by(orderid=int(candidate.id)).first()
+        order_space = session.query(OrderSpace).filter_by(orderid=int(candidate.id)).first()
         if order_space is None or int(order_space.spaceid) != int(space_id):
             continue
 
-        if _question_feedback_flag(candidate.id) != (int(isfeedback) == 1):
+        if _question_feedback_flag(candidate.id, session=session) != (int(isfeedback) == 1):
             continue
 
         return candidate
@@ -98,7 +98,7 @@ def _find_recent_duplicate_question(userid, message, space_id, isfeedback):
     return None
 
 
-def _send_new_question_notifications(question_id, question_user_role, space_id, space_title, isfeedback):
+def _send_new_question_notifications(question_id, question_user_role, space_id, space_title, isfeedback, session: Session):
     send_mess_flag = True
     if True:
         if question_user_role == 'admin' or question_user_role == 'redactor':
@@ -110,7 +110,7 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
     if not send_mess_flag:
         return
 
-    check_tel_chat = db.session.query(TelChatInfoSpace).filter_by(spaceid=space_id).first()
+    check_tel_chat = session.query(TelChatInfoSpace).filter_by(spaceid=space_id).first()
     now_time = datetime.datetime.now(east)
 
     if int(isfeedback) != 1:
@@ -148,14 +148,14 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
             print(str(e))
 
 
-def _send_question_update_notification(notify_userid, question_user_role, question_id):
+def _send_question_update_notification(notify_userid, question_user_role, question_id, session: Session):
     if notify_userid == 0:
         return
 
     if question_user_role == 'admin' or question_user_role == 'redactor':
         return
 
-    check_user_telinfo = db.session.query(UserTelegramInfo).filter_by(userid=notify_userid).first()
+    check_user_telinfo = session.query(UserTelegramInfo).filter_by(userid=notify_userid).first()
     if check_user_telinfo is None or not True:
         return
 
@@ -177,8 +177,8 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
             if send_resp['ok']:
                 messid = send_resp['result']['message_id']
                 new_mess = TelegramTempMess(telid=str(check_user_telinfo.tlgmid), messid=str(messid))
-                db.session.add(new_mess)
-                db.session.commit()
+                session.add(new_mess)
+                session.commit()
 
     except Exception as e:
         print(str(e))
@@ -201,7 +201,7 @@ def _send_space_change_notification(question_id, space_title):
         print(str(e))
 
 
-def save_question(params):
+def save_question(params, *, session: Session):
 
     try:
         orderid = _normalize_optional_int(params["orderid"])
@@ -215,7 +215,7 @@ def save_question(params):
         if message and userid:
             fileflag = 'notexist' if len(uploaded_files) == 0 else 'exist'
 
-            check_role = db.session.query(UserBaseRole).filter_by(userid=int(userid)).first()
+            check_role = session.query(UserBaseRole).filter_by(userid=int(userid)).first()
             role = get_role(check_role.roleid)
 
             question_id = 0
@@ -233,10 +233,10 @@ def save_question(params):
             # Session in Flask-SQLAlchemy/SQLAlchemy 2.x usually enters a transaction on the first query.
             # Because of that we do not open an explicit begin() block here and instead rely on a single
             # commit()/rollback() pair for the whole save flow.
-            db.session.query(User).filter_by(id=int(userid)).with_for_update().first()
+            session.query(User).filter_by(id=int(userid)).with_for_update().first()
 
             if orderid is not None:
-                check_order = db.session.query(OrderMess).filter(OrderMess.id == int(orderid)).first()
+                check_order = session.query(OrderMess).filter(OrderMess.id == int(orderid)).first()
                 if check_order is not None:
                     question_id = check_order.id
                     question_userid = check_order.userid
@@ -244,23 +244,24 @@ def save_question(params):
                     if check_order.text != message:
                         is_question_text_change = True
                         check_order.text = message
-                        db.session.add(check_order)
+                        session.add(check_order)
             else:
-                space_id, space_title = _resolve_space(spacekey)
+                space_id, space_title = _resolve_space(spacekey, session=session)
                 duplicate_question = _find_recent_duplicate_question(userid=userid, message=message,
                                                                     space_id=space_id,
-                                                                    isfeedback=isfeedback)
+                                                                    isfeedback=isfeedback,
+                                                                    session=session)
                 if duplicate_question is not None:
                     question_id = duplicate_question.id
                     question_userid = duplicate_question.userid
                 else:
                     new_question = OrderMess(userid=int(userid), text=message)
-                    db.session.add(new_question)
-                    db.session.flush()
+                    session.add(new_question)
+                    session.flush()
 
                     if isfeedback == 1:
                         new_fq = FeedbackQuestion(orderid=new_question.id)
-                        db.session.add(new_fq)
+                        session.add(new_fq)
 
                     new_flag = True
                     question_userid = int(userid)
@@ -271,12 +272,12 @@ def save_question(params):
                     else:
                         new_quest_status = OrderStatus(orderid=new_question.id,
                                                        statusid=QUESTION_STATUS['create']['id'])
-                    db.session.add(new_quest_status)
+                    session.add(new_quest_status)
 
-            check_space = db.session.query(OrderSpace).filter_by(orderid=int(question_id)).first()
+            check_space = session.query(OrderSpace).filter_by(orderid=int(question_id)).first()
 
             if orderid is not None or not new_flag:
-                space_id, space_title = _resolve_space(spacekey)
+                space_id, space_title = _resolve_space(spacekey, session=session)
 
             if spacekey:
                 if check_space:
@@ -284,25 +285,25 @@ def save_question(params):
                         is_space_change = True
 
                     check_space.spaceid = int(space_id)
-                    db.session.add(check_space)
+                    session.add(check_space)
                 else:
                     new_quest_space = OrderSpace(orderid=int(question_id), spaceid=int(space_id))
-                    db.session.add(new_quest_space)
+                    session.add(new_quest_space)
                     if not new_flag:
                         is_space_change = True
             else:
                 if check_space is None:
                     new_quest_space = OrderSpace(orderid=int(question_id), spaceid=space_id)
-                    db.session.add(new_quest_space)
+                    session.add(new_quest_space)
                     if not new_flag:
                         is_space_change = True
 
             space_unionroles_id = []
-            for item in db.session.query(SpaceUnionRole).filter(SpaceUnionRole.spaceid == space_id).all():
+            for item in session.query(SpaceUnionRole).filter(SpaceUnionRole.spaceid == space_id).all():
                 space_unionroles_id.append(item.unionroleid)
 
             space_active = False
-            check_space_active = db.session.query(SpaceUnionRoleActive).filter_by(spaceid=space_id).first()
+            check_space_active = session.query(SpaceUnionRoleActive).filter_by(spaceid=space_id).first()
 
             if check_space_active is not None:
                 if check_space_active.active == 1:
@@ -310,10 +311,10 @@ def save_question(params):
             else:
                 if len(space_unionroles_id) > 0:
                     new_space_active = SpaceUnionRoleActive(spaceid=space_id, active=1)
-                    db.session.add(new_space_active)
+                    session.add(new_space_active)
                     space_active = True
 
-            check_unionrole = db.session.query(OrderUnionRole).filter_by(orderid=question_id).first()
+            check_unionrole = session.query(OrderUnionRole).filter_by(orderid=question_id).first()
 
             if space_active:
                 question_unionrole_id = NULLROLE['id']
@@ -323,30 +324,30 @@ def save_question(params):
 
                 if check_unionrole is not None:
                     check_unionrole.unionroleid = question_unionrole_id
-                    db.session.add(check_unionrole)
+                    session.add(check_unionrole)
                 else:
                     new_quest_unionrole = OrderUnionRole(orderid=question_id, unionroleid=question_unionrole_id)
-                    db.session.add(new_quest_unionrole)
+                    session.add(new_quest_unionrole)
             else:
                 if space_id == int(NULLSPACE['id']) and new_flag:
                     if unionroleid:
                         if int(unionroleid) != 0 and role == 'personal':
-                            check_unionrole = db.session.query(UnionRole).filter_by(id=int(unionroleid)).first()
+                            check_unionrole = session.query(UnionRole).filter_by(id=int(unionroleid)).first()
                             if check_unionrole is not None:
                                 new_unionrole = OrderUnionRole(orderid=question_id, unionroleid=int(unionroleid))
-                                db.session.add(new_unionrole)
+                                session.add(new_unionrole)
                 else:
                     if check_unionrole is not None:
-                        db.session.delete(check_unionrole)
+                        session.delete(check_unionrole)
 
-            quest_user_role_rec = db.session.query(UserBaseRole).filter_by(userid=int(question_userid)).first()
+            quest_user_role_rec = session.query(UserBaseRole).filter_by(userid=int(question_userid)).first()
             question_user_role = get_role(quest_user_role_rec.roleid)
 
             if new_flag:
                 send_new_question_notify = True
             else:
-                check_status = db.session.query(OrderStatus).filter_by(orderid=int(question_id)).first()
-                check_answer = db.session.query(AnswerMess).filter_by(orderid=question_id).first()
+                check_status = session.query(OrderStatus).filter_by(orderid=int(question_id)).first()
+                check_answer = session.query(AnswerMess).filter_by(orderid=question_id).first()
 
                 if check_status is not None and check_status.statusid == int(QUESTION_STATUS['back_in_work']['id']):
                     if is_question_text_change or len(uploaded_files) != 0:
@@ -357,7 +358,7 @@ def save_question(params):
                     send_update_notify = True
 
             if len(uploaded_files) != 0:
-                app_conf_rec = db.session.query(AppConfig).first()
+                app_conf_rec = session.query(AppConfig).first()
                 if not os.path.isdir(settings.question_attachments_dir):
                     os.mkdir(settings.question_attachments_dir)
                 user_path = os.path.join(settings.question_attachments_dir, str(userid))
@@ -397,23 +398,24 @@ def save_question(params):
                         elif file_ext in EXT_DICT['animExtension']:
                             attach_type = 'animation'
                         new_attach = Attachment(type=attach_type, path=filename, caption='', public=1)
-                        db.session.add(new_attach)
-                        db.session.flush()
+                        session.add(new_attach)
+                        session.flush()
                         new_quest_attach = OrderAttachment(attachid=new_attach.id, orderid=question_id)
-                        db.session.add(new_quest_attach)
+                        session.add(new_quest_attach)
 
-            db.session.commit()
+            session.commit()
 
-            attachments = _build_attachments(question_id)
+            attachments = _build_attachments(question_id, session=session)
 
             if send_new_question_notify:
                 _send_new_question_notifications(question_id=question_id, question_user_role=question_user_role,
                                                  space_id=space_id, space_title=space_title,
-                                                 isfeedback=isfeedback)
+                                                 isfeedback=isfeedback, session=session)
             elif send_update_notify:
                 _send_question_update_notification(notify_userid=notify_userid,
                                                    question_user_role=question_user_role,
-                                                   question_id=question_id)
+                                                   question_id=question_id,
+                                                   session=session)
 
             if is_space_change:
                 _send_space_change_notification(question_id=question_id, space_title=space_title)
@@ -424,6 +426,6 @@ def save_question(params):
             return {'status': 'error', 'error_mess': 'WARN: No params'}
 
     except Exception as e:
-        db.session.rollback()
+        session.rollback()
         print(str(e))
         return {'status': 'ok', 'error_mess': str(e)}
