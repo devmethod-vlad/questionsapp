@@ -55,14 +55,14 @@ def questions_list(
 @router.post("/spaceandroles/")
 def space_roles(
     payload: SpaceRolesPayload,
-    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action:
         return error("WARN: No action param")
     if payload.action != "getrolesbyspace":
         return error("WARN: No valid action param")
 
-    response, status_code = AdminService.get_space_roles(payload.model_dump())
+    response, status_code = AdminService.get_space_roles(payload.model_dump(), session=session_context.session)
     return ok(response, status_code=status_code)
 
 
@@ -88,11 +88,14 @@ async def save_or_update(
 @router.post("/service/")
 def service(
     payload: ServicePayload,
-    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
 ):
     if not payload.action:
         return error("WARN: No action param")
-    response, status_code = AdminService.execute_service_action(payload.model_dump(exclude_none=False))
+    response, status_code = AdminService.execute_service_action(
+        payload.model_dump(exclude_none=False),
+        session=session_context.session,
+    )
     return ok(response, status_code=status_code)
 
 
