@@ -66,7 +66,7 @@ def _resolve_space(spacekey):
 
     if spacekey:
         if spacekey != '':
-            check_space = Spaces.query.filter_by(spacekey=spacekey).first()
+            check_space = db.session.query(Spaces).filter_by(spacekey=spacekey).first()
 
             if check_space:
                 space_id = check_space.id
@@ -78,7 +78,7 @@ def _resolve_space(spacekey):
 def _find_recent_duplicate_anonym_question(anonym_user_id, question_text, userfingerprintid, space_id):
     threshold = datetime.datetime.now() - datetime.timedelta(seconds=DUPLICATE_LOOKBACK_SECONDS)
     candidates = (
-        OrderMess.query
+        db.session.query(OrderMess)
         .filter(
             OrderMess.userid == int(anonym_user_id),
             OrderMess.text == question_text,
@@ -89,11 +89,11 @@ def _find_recent_duplicate_anonym_question(anonym_user_id, question_text, userfi
     )
 
     for candidate in candidates:
-        check_anonym_order = AnonymOrder.query.filter_by(orderid=int(candidate.id), fingerprint=userfingerprintid).first()
+        check_anonym_order = db.session.query(AnonymOrder).filter_by(orderid=int(candidate.id), fingerprint=userfingerprintid).first()
         if check_anonym_order is None:
             continue
 
-        check_space = OrderSpace.query.filter_by(orderid=int(candidate.id)).first()
+        check_space = db.session.query(OrderSpace).filter_by(orderid=int(candidate.id)).first()
         if check_space is None or int(check_space.spaceid) != int(space_id):
             continue
 
@@ -148,11 +148,11 @@ def save_anonym_question(params):
         spacekey = params['spacekey']
         unionroleid = _normalize_optional_int(params['unionroleid'])
 
-        app_conf_rec = AppConfig.query.first()
+        app_conf_rec = db.session.query(AppConfig).first()
 
         if app_conf_rec is not None:
 
-            check_anonym_user = User.query.filter_by(id=int(app_conf_rec.anonymuserid)).first()
+            check_anonym_user = db.session.query(User).filter_by(id=int(app_conf_rec.anonymuserid)).first()
 
             if check_anonym_user:
                 send_new_question_notify = False
@@ -161,7 +161,7 @@ def save_anonym_question(params):
 
                 try:
                     # The session already autobegins on earlier SELECTs, so avoid nested begin().
-                    User.query.filter_by(id=int(check_anonym_user.id)).with_for_update().first()
+                    db.session.query(User).filter_by(id=int(check_anonym_user.id)).with_for_update().first()
 
                     space_id, space_title = _resolve_space(spacekey)
                     duplicate_question = _find_recent_duplicate_anonym_question(

@@ -106,7 +106,7 @@ def setContenType(extension):
 
 
 def _set_public_active(value):
-    app_conf = AppConfig.query.order_by(desc('created_at')).limit(1).first()
+    app_conf = db.session.query(AppConfig).order_by(desc('created_at')).limit(1).first()
     app_conf.ispublicactive = value
     db.session.commit()
 
@@ -129,9 +129,9 @@ def _build_attachment_url(base_url, user_id, order_id, path):
 
 def _get_order_attachments(order_id, user_id):
     attachments = []
-    attachs = OrderAttachment.query.filter_by(orderid=order_id).order_by(desc(OrderAttachment.created_at)).all()
+    attachs = db.session.query(OrderAttachment).filter_by(orderid=order_id).order_by(desc(OrderAttachment.created_at)).all()
     for attach_item in attachs:
-        attachment = Attachment.query.filter_by(id=attach_item.attachid).first()
+        attachment = db.session.query(Attachment).filter_by(id=attach_item.attachid).first()
         if attachment.public == 1:
             attachments.append(
                 _build_attachment_url(SETTINGS.question_attachments_dir, user_id, order_id, attachment.path)
@@ -141,11 +141,11 @@ def _get_order_attachments(order_id, user_id):
 
 def _get_answer_attachments(answer_id, order_id, user_id):
     attachments = []
-    answer_attachments = AnswerAttachment.query.filter_by(answerid=answer_id).order_by(
+    answer_attachments = db.session.query(AnswerAttachment).filter_by(answerid=answer_id).order_by(
         desc(AnswerAttachment.created_at)
     ).all()
     for answer_attachment in answer_attachments:
-        attachment = Attachment.query.filter_by(id=answer_attachment.attachid).first()
+        attachment = db.session.query(Attachment).filter_by(id=answer_attachment.attachid).first()
         if attachment.public == 1:
             attachments.append(
                 _build_attachment_url(SETTINGS.answer_attachments_dir, user_id, order_id, attachment.path)
@@ -154,13 +154,13 @@ def _get_answer_attachments(answer_id, order_id, user_id):
 
 
 def _get_union_role_name(order_id, other_role_id):
-    order_union_role = OrderUnionRole.query.filter_by(orderid=order_id).first()
+    order_union_role = db.session.query(OrderUnionRole).filter_by(orderid=order_id).first()
     if order_union_role is None:
         return ''
     if order_union_role.unionroleid == other_role_id:
         return ''
 
-    union_role = UnionRole.query.filter_by(id=order_union_role.unionroleid).first()
+    union_role = db.session.query(UnionRole).filter_by(id=order_union_role.unionroleid).first()
     return union_role.name
 
 
@@ -244,12 +244,12 @@ def _build_content_dict(space_orders_list, other_role_id):
 
     for item in space_orders_list:
         order_id = int(item['id'])
-        order = OrderMess.query.filter_by(id=order_id).first()
-        public_order = OrderPublic.query.filter_by(orderid=order_id).first()
+        order = db.session.query(OrderMess).filter_by(id=order_id).first()
+        public_order = db.session.query(OrderPublic).filter_by(orderid=order_id).first()
         if not public_order:
             continue
 
-        answer = AnswerMess.query.filter_by(orderid=order_id).first()
+        answer = db.session.query(AnswerMess).filter_by(orderid=order_id).first()
         order_time = order.created_at.astimezone(east)
         answer_time = answer.modified_at.astimezone(east)
 
@@ -281,29 +281,29 @@ def publicOrder(orderid):
 
     try:
         confluence = _create_confluence_client()
-        order_space = OrderSpace.query.filter_by(orderid=int(orderid)).first()
+        order_space = db.session.query(OrderSpace).filter_by(orderid=int(orderid)).first()
 
         space_orders_list = []
-        all_space_orders = OrderSpace.query.filter(OrderSpace.spaceid == order_space.spaceid).all()
-        other_union_role = UnionRole.query.filter(and_((UnionRole.name == 'Другое'), (UnionRole.emiasid == 0))).first()
+        all_space_orders = db.session.query(OrderSpace).filter(OrderSpace.spaceid == order_space.spaceid).all()
+        other_union_role = db.session.query(UnionRole).filter(and_((UnionRole.name == 'Другое'), (UnionRole.emiasid == 0))).first()
 
         role_out_flag = False
         for space_order in all_space_orders:
-            public_order = OrderPublic.query.filter_by(orderid=space_order.orderid).first()
-            order_status = OrderStatus.query.filter_by(orderid=space_order.orderid).first()
-            order_union_role = OrderUnionRole.query.filter_by(orderid=space_order.orderid).first()
+            public_order = db.session.query(OrderPublic).filter_by(orderid=space_order.orderid).first()
+            order_status = db.session.query(OrderStatus).filter_by(orderid=space_order.orderid).first()
+            order_union_role = db.session.query(OrderUnionRole).filter_by(orderid=space_order.orderid).first()
 
             if order_union_role is not None and public_order is not None:
                 if order_union_role.unionroleid != other_union_role.id:
                     role_out_flag = True
 
             if order_status.statusid not in [1, 2, 5] and public_order:
-                answer = AnswerMess.query.filter_by(orderid=int(space_order.orderid)).first()
+                answer = db.session.query(AnswerMess).filter_by(orderid=int(space_order.orderid)).first()
                 space_orders_list.append({'id': space_order.orderid, 'answer_date': answer.modified_at})
 
         space_orders_list.sort(key=lambda item: item['answer_date'], reverse=True)
 
-        space_record = Spaces.query.filter_by(id=order_space.spaceid).first()
+        space_record = db.session.query(Spaces).filter_by(id=order_space.spaceid).first()
         space = space_record.spacekey
         content_dict = _build_content_dict(space_orders_list, other_union_role.id)
 
@@ -362,7 +362,7 @@ def publicOrder(orderid):
         print(str(e))
         print('ERROR during public question' + str(orderid))
         _set_public_active(0)
-        check_public = OrderPublic.query.filter_by(orderid=int(orderid)).first()
+        check_public = db.session.query(OrderPublic).filter_by(orderid=int(orderid)).first()
         if check_public is not None:
             db.session.delete(check_public)
             db.session.commit()

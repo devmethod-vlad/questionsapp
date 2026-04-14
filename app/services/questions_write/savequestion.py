@@ -43,8 +43,8 @@ def _normalize_spacekey(value):
 
 def _build_attachments(question_id):
     attachments = []
-    for at_item in OrderAttachment.query.filter(OrderAttachment.orderid == int(question_id)).all():
-        attach_rec = Attachment.query.filter(Attachment.id == at_item.attachid).first()
+    for at_item in db.session.query(OrderAttachment).filter(OrderAttachment.orderid == int(question_id)).all():
+        attach_rec = db.session.query(Attachment).filter(Attachment.id == at_item.attachid).first()
         if attach_rec is not None:
             attachments.append({
                 'type': attach_rec.type,
@@ -60,7 +60,7 @@ def _resolve_space(spacekey):
     space_title = NULLSPACE['title']
 
     if spacekey and spacekey != '0':
-        space_rec = Spaces.query.filter_by(spacekey=spacekey).first()
+        space_rec = db.session.query(Spaces).filter_by(spacekey=spacekey).first()
         if space_rec is not None:
             space_id = space_rec.id
             space_title = space_rec.title
@@ -69,13 +69,13 @@ def _resolve_space(spacekey):
 
 
 def _question_feedback_flag(orderid):
-    return FeedbackQuestion.query.filter_by(orderid=int(orderid)).first() is not None
+    return db.session.query(FeedbackQuestion).filter_by(orderid=int(orderid)).first() is not None
 
 
 def _find_recent_duplicate_question(userid, message, space_id, isfeedback):
     threshold = datetime.datetime.now() - datetime.timedelta(seconds=DUPLICATE_LOOKBACK_SECONDS)
     candidates = (
-        OrderMess.query
+        db.session.query(OrderMess)
         .filter(
             OrderMess.userid == int(userid),
             OrderMess.text == message,
@@ -86,7 +86,7 @@ def _find_recent_duplicate_question(userid, message, space_id, isfeedback):
     )
 
     for candidate in candidates:
-        order_space = OrderSpace.query.filter_by(orderid=int(candidate.id)).first()
+        order_space = db.session.query(OrderSpace).filter_by(orderid=int(candidate.id)).first()
         if order_space is None or int(order_space.spaceid) != int(space_id):
             continue
 
@@ -110,7 +110,7 @@ def _send_new_question_notifications(question_id, question_user_role, space_id, 
     if not send_mess_flag:
         return
 
-    check_tel_chat = TelChatInfoSpace.query.filter_by(spaceid=space_id).first()
+    check_tel_chat = db.session.query(TelChatInfoSpace).filter_by(spaceid=space_id).first()
     now_time = datetime.datetime.now(east)
 
     if int(isfeedback) != 1:
@@ -155,7 +155,7 @@ def _send_question_update_notification(notify_userid, question_user_role, questi
     if question_user_role == 'admin' or question_user_role == 'redactor':
         return
 
-    check_user_telinfo = UserTelegramInfo.query.filter_by(userid=notify_userid).first()
+    check_user_telinfo = db.session.query(UserTelegramInfo).filter_by(userid=notify_userid).first()
     if check_user_telinfo is None or not True:
         return
 
@@ -215,7 +215,7 @@ def save_question(params):
         if message and userid:
             fileflag = 'notexist' if len(uploaded_files) == 0 else 'exist'
 
-            check_role = UserBaseRole.query.filter_by(userid=int(userid)).first()
+            check_role = db.session.query(UserBaseRole).filter_by(userid=int(userid)).first()
             role = get_role(check_role.roleid)
 
             question_id = 0
@@ -233,10 +233,10 @@ def save_question(params):
             # Session in Flask-SQLAlchemy/SQLAlchemy 2.x usually enters a transaction on the first query.
             # Because of that we do not open an explicit begin() block here and instead rely on a single
             # commit()/rollback() pair for the whole save flow.
-            User.query.filter_by(id=int(userid)).with_for_update().first()
+            db.session.query(User).filter_by(id=int(userid)).with_for_update().first()
 
             if orderid is not None:
-                check_order = OrderMess.query.filter(OrderMess.id == int(orderid)).first()
+                check_order = db.session.query(OrderMess).filter(OrderMess.id == int(orderid)).first()
                 if check_order is not None:
                     question_id = check_order.id
                     question_userid = check_order.userid
@@ -273,7 +273,7 @@ def save_question(params):
                                                        statusid=QUESTION_STATUS['create']['id'])
                     db.session.add(new_quest_status)
 
-            check_space = OrderSpace.query.filter_by(orderid=int(question_id)).first()
+            check_space = db.session.query(OrderSpace).filter_by(orderid=int(question_id)).first()
 
             if orderid is not None or not new_flag:
                 space_id, space_title = _resolve_space(spacekey)
@@ -298,11 +298,11 @@ def save_question(params):
                         is_space_change = True
 
             space_unionroles_id = []
-            for item in SpaceUnionRole.query.filter(SpaceUnionRole.spaceid == space_id).all():
+            for item in db.session.query(SpaceUnionRole).filter(SpaceUnionRole.spaceid == space_id).all():
                 space_unionroles_id.append(item.unionroleid)
 
             space_active = False
-            check_space_active = SpaceUnionRoleActive.query.filter_by(spaceid=space_id).first()
+            check_space_active = db.session.query(SpaceUnionRoleActive).filter_by(spaceid=space_id).first()
 
             if check_space_active is not None:
                 if check_space_active.active == 1:
@@ -313,7 +313,7 @@ def save_question(params):
                     db.session.add(new_space_active)
                     space_active = True
 
-            check_unionrole = OrderUnionRole.query.filter_by(orderid=question_id).first()
+            check_unionrole = db.session.query(OrderUnionRole).filter_by(orderid=question_id).first()
 
             if space_active:
                 question_unionrole_id = NULLROLE['id']
@@ -331,7 +331,7 @@ def save_question(params):
                 if space_id == int(NULLSPACE['id']) and new_flag:
                     if unionroleid:
                         if int(unionroleid) != 0 and role == 'personal':
-                            check_unionrole = UnionRole.query.filter_by(id=int(unionroleid)).first()
+                            check_unionrole = db.session.query(UnionRole).filter_by(id=int(unionroleid)).first()
                             if check_unionrole is not None:
                                 new_unionrole = OrderUnionRole(orderid=question_id, unionroleid=int(unionroleid))
                                 db.session.add(new_unionrole)
@@ -339,14 +339,14 @@ def save_question(params):
                     if check_unionrole is not None:
                         db.session.delete(check_unionrole)
 
-            quest_user_role_rec = UserBaseRole.query.filter_by(userid=int(question_userid)).first()
+            quest_user_role_rec = db.session.query(UserBaseRole).filter_by(userid=int(question_userid)).first()
             question_user_role = get_role(quest_user_role_rec.roleid)
 
             if new_flag:
                 send_new_question_notify = True
             else:
-                check_status = OrderStatus.query.filter_by(orderid=int(question_id)).first()
-                check_answer = AnswerMess.query.filter_by(orderid=question_id).first()
+                check_status = db.session.query(OrderStatus).filter_by(orderid=int(question_id)).first()
+                check_answer = db.session.query(AnswerMess).filter_by(orderid=question_id).first()
 
                 if check_status is not None and check_status.statusid == int(QUESTION_STATUS['back_in_work']['id']):
                     if is_question_text_change or len(uploaded_files) != 0:
@@ -357,7 +357,7 @@ def save_question(params):
                     send_update_notify = True
 
             if len(uploaded_files) != 0:
-                app_conf_rec = AppConfig.query.first()
+                app_conf_rec = db.session.query(AppConfig).first()
                 if not os.path.isdir(settings.question_attachments_dir):
                     os.mkdir(settings.question_attachments_dir)
                 user_path = os.path.join(settings.question_attachments_dir, str(userid))

@@ -6,7 +6,6 @@ for existing infrastructure integrations.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
@@ -21,14 +20,6 @@ from app.db.models import AnonymOrder, OrderMess, UserTelegramInfo
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 settings = get_settings()
-
-
-@contextmanager
-def runtime_context():
-    try:
-        yield
-    finally:
-        SessionFactory.remove()
 
 
 @router.get("/test/")
@@ -144,11 +135,11 @@ def show_questions(request: Request):
 
 @router.get("/webappauth/", response_class=HTMLResponse)
 def webappauth(request: Request, webappauthtelid: str | None = Query(default=None)):
-    with runtime_context():
+    with SessionFactory() as session:
         no_params = not bool(webappauthtelid)
         is_auth = False
         if webappauthtelid:
-            is_auth = UserTelegramInfo.query.filter_by(tlgmid=str(webappauthtelid)).first() is not None
+            is_auth = session.query(UserTelegramInfo).filter_by(tlgmid=str(webappauthtelid)).first() is not None
 
     data = {
         "no_params": no_params,
@@ -167,15 +158,15 @@ def webappauth(request: Request, webappauthtelid: str | None = Query(default=Non
 @router.get("/webappanonymviewer/", response_class=HTMLResponse)
 def webapp_anonym_viewer(request: Request, webappquestionid: str | None = Query(default=None)):
     invalid = False
-    with runtime_context():
+    with SessionFactory() as session:
         if not webappquestionid:
             invalid = True
         else:
-            check_order = OrderMess.query.filter_by(id=int(webappquestionid)).first()
+            check_order = session.query(OrderMess).filter_by(id=int(webappquestionid)).first()
             if check_order is None:
                 invalid = True
             else:
-                check_anonym_order = AnonymOrder.query.filter_by(orderid=int(webappquestionid)).first()
+                check_anonym_order = session.query(AnonymOrder).filter_by(orderid=int(webappquestionid)).first()
                 invalid = check_anonym_order is None
 
     data = {

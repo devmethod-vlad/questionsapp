@@ -8,7 +8,7 @@ import os
 
 def save_combine(params):
 
-    app_conf_rec = AppConfig.query.first()
+    app_conf_rec = db.session.query(AppConfig).first()
 
     if params["publicorder"]:
         if int(params["publicorder"]) == 1 and app_conf_rec.ispublicactive == 1:
@@ -23,7 +23,7 @@ def save_combine(params):
 
         params['orderid'] = question_id
 
-        check_role = UserBaseRole.query.filter_by(userid=int(params['userid'])).first()
+        check_role = db.session.query(UserBaseRole).filter_by(userid=int(params['userid'])).first()
 
         role = get_role(check_role.roleid)
 
@@ -34,7 +34,7 @@ def save_combine(params):
                 if save_quest_answer['status'] == 'ok':
                     if params["publicorder"]:
                         if int(params["publicorder"]) == 1:
-                            check_public = OrderPublic.query.filter_by(orderid=int(question_id)).first()
+                            check_public = db.session.query(OrderPublic).filter_by(orderid=int(question_id)).first()
 
                             if check_public:
                                 db.session.delete(check_public)

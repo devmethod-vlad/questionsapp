@@ -20,11 +20,11 @@ def check_user_token(token: str | None) -> dict:
         return {"status": "error", "error_mess": "WARN: No token param"}
 
     try:
-        config_rec = AppConfig.query.first()
+        config_rec = db.session.query(AppConfig).first()
         if config_rec is None:
             return {"status": "error", "error_mess": "WARN: No appconfig record"}
 
-        token_rec = AccessToken.query.filter_by(token=token).first()
+        token_rec = db.session.query(AccessToken).filter_by(token=token).first()
         if token_rec is None:
             return {"status": "token_error", "error_mess": "WARN: Token doesn't find"}
 
