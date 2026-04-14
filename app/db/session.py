@@ -9,27 +9,34 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from database import db
+from app.db.engine import SessionFactory
 
 
 class RequestSessionContext:
-    """Lightweight wrapper around the legacy Flask-SQLAlchemy scoped session."""
+    """Request-level SQLAlchemy session holder.
+
+    A new session is materialized lazily from ``SessionFactory`` and cleaned up
+    by the dependency lifecycle in :func:`get_request_session_context`.
+    """
+
+    def __init__(self) -> None:
+        self._session = SessionFactory()
 
     @property
     def session(self):
         """Expose active SQLAlchemy session for repositories/services."""
 
-        return db.session
+        return self._session
 
     def rollback(self) -> None:
         """Rollback current transaction for unhandled request errors."""
 
-        db.session.rollback()
+        self._session.rollback()
 
     def remove(self) -> None:
         """Remove scoped session to prevent session leakage across requests."""
 
-        db.session.remove()
+        SessionFactory.remove()
 
 
 def get_request_session_context() -> Generator[RequestSessionContext, None, None]:

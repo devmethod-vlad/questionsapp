@@ -123,8 +123,6 @@ class AdminActionsService:
                 "info": "Логин администратора должен состоять как минимум из 4 символов",
             }
 
-        from app.db.legacy_db import db
-
         try:
             hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
             self.repository.add_manual_user(
@@ -132,10 +130,10 @@ class AdminActionsService:
                 login=adminlogin,
                 password_hash=hashed.decode(get_default_format()),
             )
-            db.session.commit()
+            self.repository.commit()
             return {"status": "ok"}
         except Exception as exc:  # pragma: no cover - legacy-compatible envelope
-            db.session.rollback()
+            self.repository.rollback()
             return {"status": "error", "error_mess": str(exc)}
 
     def change_admin_pass(self, *, userid: int | None, adminpass: str | None):
@@ -146,15 +144,13 @@ class AdminActionsService:
         if manual_user is None:
             return {"status": "error", "error_mess": "Admin doesn't exist"}
 
-        from app.db.legacy_db import db
-
         try:
             hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
             manual_user.password = hashed.decode(get_default_format())
-            db.session.commit()
+            self.repository.commit()
             return {"status": "ok"}
         except Exception as exc:  # pragma: no cover - legacy-compatible envelope
-            db.session.rollback()
+            self.repository.rollback()
             return {"status": "error", "error_mess": str(exc)}
 
     def enter_admin(self, *, login: str | None, password: str | None, userid: int | None):
@@ -172,21 +168,19 @@ class AdminActionsService:
         if check_role is None:
             return {"status": "error", "error_mess": "WARN: No user role rec"}
 
-        from app.db.legacy_db import db
-
         check_role.roleid = 1
-        db.session.add(check_role)
+        self.repository.add(check_role)
 
         access_token = secrets.token_urlsafe(16)
         self.repository.remove_access_token(user_id=check_admin.userid)
-        db.session.commit()
+        self.repository.commit()
 
         self.repository.add_access_token(user_id=check_admin.userid, token=access_token)
         user_info = set_user_info(check_admin.userid)
         userinfo = {"token": access_token}
         userinfo.update(user_info)
         userinfo["userrole"] = {"id": 1, "name": "Администратор"}
-        db.session.commit()
+        self.repository.commit()
         return {"status": "ok", "info": userinfo}
 
     def exit_admin(self, *, userid: int | None):
@@ -199,10 +193,8 @@ class AdminActionsService:
 
         base_roles = get_base_roles()
         if check_role.roleid == int(base_roles["admin"]["id"]):
-            from app.db.legacy_db import db
-
             check_role.roleid = int(base_roles["redactor"]["id"])
-            db.session.commit()
+            self.repository.commit()
 
         return {"status": "ok"}
 
@@ -227,8 +219,6 @@ class AdminActionsService:
         if not payload.get("tokenlifetime") or not payload.get("botname") or not payload.get("uploadsize"):
             return {"status": "params_error", "error_mess": "WARN: No params"}
 
-        from app.db.legacy_db import db
-
         try:
             config_rec = self.repository.get_app_config()
             if config_rec is None:
@@ -240,8 +230,8 @@ class AdminActionsService:
                 botname=payload["botname"],
                 uploadsize=int(payload["uploadsize"]),
             )
-            db.session.commit()
+            self.repository.commit()
             return {"status": "ok"}
         except Exception as exc:  # pragma: no cover - legacy-compatible envelope
-            db.session.rollback()
+            self.repository.rollback()
             return {"status": "error", "error_mess": str(exc)}
