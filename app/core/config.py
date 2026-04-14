@@ -15,6 +15,15 @@ from urllib.parse import quote_plus
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.constants import (
+    BASE_ROLE,
+    DEFAULT_RENDER_STATUSES,
+    EXT_DICT,
+    NULLROLE,
+    NULLSPACE,
+    QUESTION_STATUS,
+    SHOW_ALL_SPACES_ITEM,
+)
 from app.core.env import get_env
 
 
@@ -119,38 +128,13 @@ class Config:
     QUESTIONS_MAIN_PAGE = get_env("QUESTIONS_MAIN_PAGE")
     URL_PREFIX = get_env("QUESTIONSAPP_URL_PREFIX", "/eduportal/questions")
 
-    BASE_ROLE = {
-        "admin": {"id": 1, "name": "Администратор"},
-        "redactor": {"id": 3, "name": "Сотрудник ЕМИАС"},
-        "personal": {"id": 2, "name": "Сотрудник МУ"},
-    }
-
-    QUESTION_STATUS = {
-        "create": {"id": 1, "name": "Создано"},
-        "inwork": {"id": 2, "name": "Взято в работу"},
-        "received_answer": {"id": 3, "name": "Получило ответ"},
-        "archive": {"id": 4, "name": "Получило ответ"},
-        "trash": {"id": 5, "name": "В корзине"},
-        "back_in_work": {"id": 7, "name": "Возвращено в работу"},
-        "feedback": {"id": 100, "name": "Пожелания"},
-        "public": {"id": 101, "name": "Опубликовано"},
-    }
-
-    DEFAULT_RENDER_STATUSES = ["create", "inwork", "received_answer", "back_in_work"]
-    NULLSPACE = {"id": 26, "title": "Не распределено", "spacekey": "nullspacekey"}
-    NULLROLE = {"id": 159, "name": "Другое", "emiasid": 0}
-    SHOW_ALL_SPACES_ITEM = {"id": 0, "title": "Показать все темы", "spacekey": ""}
-    EXT_DICT = {
-        "imageExtension": ["png", "jpeg", "jpg"],
-        "animExtension": ["gif"],
-        "wordExtension": ["doc", "docx", "odf"],
-        "textDocExtension": ["rtf", "txt"],
-        "excelExtension": ["xlsx", "xlsm", "xlsb", "xltx", "xltm", "xls"],
-        "videoExtension": ["wmv", "mp4", "mov", "avi", "flw", "swf", "mkv", "webm", "mpeg2"],
-        "audioExtension": ["flac", "mp3", "wav", "wma", "aac"],
-        "webExtensions": ["json"],
-        "pdfExtensions": ["pdf"],
-    }
+    BASE_ROLE = BASE_ROLE
+    QUESTION_STATUS = QUESTION_STATUS
+    DEFAULT_RENDER_STATUSES = DEFAULT_RENDER_STATUSES
+    NULLSPACE = NULLSPACE
+    NULLROLE = NULLROLE
+    SHOW_ALL_SPACES_ITEM = SHOW_ALL_SPACES_ITEM
+    EXT_DICT = EXT_DICT
     DEFAULT_FORMAT = get_env("DEFAULT_FORMAT", "UTF-8")
 
 
@@ -189,11 +173,4 @@ class DevConfig(Config):
 # Framework-agnostic aliases for migration-safe runtime access.
 # Keep these values co-located with legacy Config while helper modules move
 # away from Flask application context reads.
-BASE_ROLE = Config.BASE_ROLE
-QUESTION_STATUS = Config.QUESTION_STATUS
-NULLSPACE = Config.NULLSPACE
-NULLROLE = Config.NULLROLE
 URL_PREFIX = Config.URL_PREFIX
-
-DEFAULT_RENDER_STATUSES = Config.DEFAULT_RENDER_STATUSES
-SHOW_ALL_SPACES_ITEM = Config.SHOW_ALL_SPACES_ITEM
