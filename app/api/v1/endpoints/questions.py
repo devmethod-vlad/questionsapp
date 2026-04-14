@@ -70,7 +70,7 @@ def space_roles(
 @router.post("/saveorupdate/")
 async def save_or_update(
     form_data: Annotated[SaveOrUpdatePayload, Depends(SaveOrUpdatePayload.from_form)],
-    _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
     question_files: list[UploadFile] = File(default_factory=list, alias="question_files[]"),
     answer_files: list[UploadFile] = File(default_factory=list, alias="answer_files[]"),
 ):
@@ -82,6 +82,7 @@ async def save_or_update(
         payload=form_data.model_dump(),
         question_files=question_files,
         answer_files=answer_files,
+        session=session_context.session,
     )
     return ok(response, status_code=status_code)
 

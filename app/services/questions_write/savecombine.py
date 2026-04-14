@@ -1,20 +1,20 @@
-from app.db.legacy_db import db
 from app.db.models import AppConfig, OrderPublic, UserBaseRole
 from app.services.questions_write.savequestion import save_question
 from app.services.questions_write.saveanswer import save_answer
 from app.services.legacy.roles.getrole import get_role
 from app.workers.tasks.publicorder import publicOrder
 import os
+from sqlalchemy.orm import Session
 
-def save_combine(params):
+def save_combine(params, *, session: Session):
 
-    app_conf_rec = db.session.query(AppConfig).first()
+    app_conf_rec = session.query(AppConfig).first()
 
     if params["publicorder"]:
         if int(params["publicorder"]) == 1 and app_conf_rec.ispublicactive == 1:
             return {'status': 'publicactive'}
 
-    save_quest = save_question(params)
+    save_quest = save_question(params, session=session)
 
 
     if save_quest['status'] == 'ok':
@@ -23,26 +23,26 @@ def save_combine(params):
 
         params['orderid'] = question_id
 
-        check_role = db.session.query(UserBaseRole).filter_by(userid=int(params['userid'])).first()
+        check_role = session.query(UserBaseRole).filter_by(userid=int(params['userid'])).first()
 
         role = get_role(check_role.roleid)
 
         if isinstance(params['answer_text'], str):
             if params['answer_text'] != '':
-                save_quest_answer = save_answer(params)
+                save_quest_answer = save_answer(params, session=session)
 
                 if save_quest_answer['status'] == 'ok':
                     if params["publicorder"]:
                         if int(params["publicorder"]) == 1:
-                            check_public = db.session.query(OrderPublic).filter_by(orderid=int(question_id)).first()
+                            check_public = session.query(OrderPublic).filter_by(orderid=int(question_id)).first()
 
                             if check_public:
-                                db.session.delete(check_public)
-                                db.session.commit()
+                                session.delete(check_public)
+                                session.commit()
 
                             new_public = OrderPublic(orderid=int(question_id))
-                            db.session.add(new_public)
-                            db.session.commit()
+                            session.add(new_public)
+                            session.commit()
 
                             if int(os.getenv('PROD')) == 1:
                                 publicOrder.delay(question_id)

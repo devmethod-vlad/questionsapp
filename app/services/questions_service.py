@@ -75,7 +75,14 @@ class QuestionsService:
         return service.form_questions_list(payload), 200
 
     @staticmethod
-    def save_or_update(action: str, payload: dict[str, Any], question_files: list[Any], answer_files: list[Any]):
+    def save_or_update(
+        action: str,
+        payload: dict[str, Any],
+        question_files: list[Any],
+        answer_files: list[Any],
+        *,
+        session,
+    ):
         """Route write actions to native command service with upload wrappers."""
 
         wrapped_payload = dict(payload)
@@ -85,4 +92,4 @@ class QuestionsService:
                 "answer_files": [AppUpload(file_obj) for file_obj in answer_files],
             }
         )
-        return QuestionWriteService.execute(action, wrapped_payload)
+        return QuestionWriteService.execute(action, wrapped_payload, session=session)

@@ -1,4 +1,3 @@
-from app.db.legacy_db import db
 from app.db.models import AppConfig, User, Spaces, OrderMess
 from app.db.models import OrderStatus, OrderSpace, AnonymOrder, AnonymOrderInfo
 from app.db.models import OrderUnionRole
@@ -7,6 +6,7 @@ import datetime
 from app.core.constants import EXT_DICT, NULLROLE, NULLSPACE, QUESTION_STATUS
 from app.core.settings import get_settings
 from pytz import timezone
+from sqlalchemy.orm import Session
 
 settings = get_settings()
 
@@ -60,13 +60,13 @@ def _normalize_optional_int(value):
     return int(value)
 
 
-def _resolve_space(spacekey):
+def _resolve_space(spacekey, session: Session):
     space_id = NULLSPACE['id']
     space_title = NULLSPACE['title']
 
     if spacekey:
         if spacekey != '':
-            check_space = db.session.query(Spaces).filter_by(spacekey=spacekey).first()
+            check_space = session.query(Spaces).filter_by(spacekey=spacekey).first()
 
             if check_space:
                 space_id = check_space.id
@@ -75,10 +75,10 @@ def _resolve_space(spacekey):
     return space_id, space_title
 
 
-def _find_recent_duplicate_anonym_question(anonym_user_id, question_text, userfingerprintid, space_id):
+def _find_recent_duplicate_anonym_question(anonym_user_id, question_text, userfingerprintid, space_id, session: Session):
     threshold = datetime.datetime.now() - datetime.timedelta(seconds=DUPLICATE_LOOKBACK_SECONDS)
     candidates = (
-        db.session.query(OrderMess)
+        session.query(OrderMess)
         .filter(
             OrderMess.userid == int(anonym_user_id),
             OrderMess.text == question_text,
@@ -89,11 +89,11 @@ def _find_recent_duplicate_anonym_question(anonym_user_id, question_text, userfi
     )
 
     for candidate in candidates:
-        check_anonym_order = db.session.query(AnonymOrder).filter_by(orderid=int(candidate.id), fingerprint=userfingerprintid).first()
+        check_anonym_order = session.query(AnonymOrder).filter_by(orderid=int(candidate.id), fingerprint=userfingerprintid).first()
         if check_anonym_order is None:
             continue
 
-        check_space = db.session.query(OrderSpace).filter_by(orderid=int(candidate.id)).first()
+        check_space = session.query(OrderSpace).filter_by(orderid=int(candidate.id)).first()
         if check_space is None or int(check_space.spaceid) != int(space_id):
             continue
 
@@ -136,7 +136,7 @@ def _send_new_anonym_question_notification(new_question_id, space_title):
             print(str(e))
 
 
-def save_anonym_question(params):
+def save_anonym_question(params, *, session: Session):
 
     if check_anonym_quest_params(params):
         userfingerprintid = params['userfingerprintid']
@@ -148,11 +148,11 @@ def save_anonym_question(params):
         spacekey = params['spacekey']
         unionroleid = _normalize_optional_int(params['unionroleid'])
 
-        app_conf_rec = db.session.query(AppConfig).first()
+        app_conf_rec = session.query(AppConfig).first()
 
         if app_conf_rec is not None:
 
-            check_anonym_user = db.session.query(User).filter_by(id=int(app_conf_rec.anonymuserid)).first()
+            check_anonym_user = session.query(User).filter_by(id=int(app_conf_rec.anonymuserid)).first()
 
             if check_anonym_user:
                 send_new_question_notify = False
@@ -161,22 +161,23 @@ def save_anonym_question(params):
 
                 try:
                     # The session already autobegins on earlier SELECTs, so avoid nested begin().
-                    db.session.query(User).filter_by(id=int(check_anonym_user.id)).with_for_update().first()
+                    session.query(User).filter_by(id=int(check_anonym_user.id)).with_for_update().first()
 
-                    space_id, space_title = _resolve_space(spacekey)
+                    space_id, space_title = _resolve_space(spacekey, session=session)
                     duplicate_question = _find_recent_duplicate_anonym_question(
                         anonym_user_id=check_anonym_user.id,
                         question_text=question_text,
                         userfingerprintid=userfingerprintid,
                         space_id=space_id,
+                        session=session,
                     )
 
                     if duplicate_question is not None:
                         created_question_id = duplicate_question.id
                     else:
                         new_question = OrderMess(userid=check_anonym_user.id, text=question_text)
-                        db.session.add(new_question)
-                        db.session.flush()
+                        session.add(new_question)
+                        session.flush()
 
                         created_question_id = new_question.id
                         send_new_question_notify = True
@@ -185,14 +186,14 @@ def save_anonym_question(params):
                             orderid=new_question.id,
                             statusid=QUESTION_STATUS['create']['id']
                         )
-                        db.session.add(new_status)
+                        session.add(new_status)
 
                         new_space = OrderSpace(orderid=new_question.id, spaceid=space_id)
-                        db.session.add(new_space)
+                        session.add(new_space)
 
                         new_anonym_quest = AnonymOrder(orderid=new_question.id, fingerprint=userfingerprintid)
-                        db.session.add(new_anonym_quest)
-                        db.session.flush()
+                        session.add(new_anonym_quest)
+                        session.flush()
 
                         anonym_quest_info = AnonymOrderInfo(
                             orderid=new_question.id,
@@ -205,16 +206,16 @@ def save_anonym_question(params):
                             muname=muname,
                             speciality=''
                         )
-                        db.session.add(anonym_quest_info)
+                        session.add(anonym_quest_info)
 
                         if unionroleid is not None and int(unionroleid) != 0:
                             new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(unionroleid))
-                            db.session.add(new_quest_unionrole)
+                            session.add(new_quest_unionrole)
                         else:
                             new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(NULLROLE['id']))
-                            db.session.add(new_quest_unionrole)
+                            session.add(new_quest_unionrole)
 
-                    db.session.commit()
+                    session.commit()
 
                     if send_new_question_notify:
                         _send_new_anonym_question_notification(created_question_id, space_title)
@@ -222,7 +223,7 @@ def save_anonym_question(params):
                     return _build_response(created_question_id, question_text)
 
                 except Exception as e:
-                    db.session.rollback()
+                    session.rollback()
                     print(str(e))
                     return {'status': 'error', 'error_mess': str(e)}
 
