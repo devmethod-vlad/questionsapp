@@ -8,14 +8,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 from app.core.settings import get_settings
-from app.db.engine import SessionFactory
-from app.db.models import AnonymOrder, OrderMess, UserTelegramInfo
+from app.services.dependencies import get_web_service
+from app.services.web_service import WebService
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -134,12 +136,12 @@ def show_questions(request: Request):
 
 
 @router.get("/webappauth/", response_class=HTMLResponse)
-def webappauth(request: Request, webappauthtelid: str | None = Query(default=None)):
-    with SessionFactory() as session:
-        no_params = not bool(webappauthtelid)
-        is_auth = False
-        if webappauthtelid:
-            is_auth = session.query(UserTelegramInfo).filter_by(tlgmid=str(webappauthtelid)).first() is not None
+def webappauth(
+    request: Request,
+    webappauthtelid: str | None = Query(default=None),
+    web_service: Annotated[WebService, Depends(get_web_service)],
+):
+    no_params, is_auth = web_service.is_authorized_telegram_user(telegram_id=webappauthtelid)
 
     data = {
         "no_params": no_params,
@@ -156,18 +158,12 @@ def webappauth(request: Request, webappauthtelid: str | None = Query(default=Non
 
 
 @router.get("/webappanonymviewer/", response_class=HTMLResponse)
-def webapp_anonym_viewer(request: Request, webappquestionid: str | None = Query(default=None)):
-    invalid = False
-    with SessionFactory() as session:
-        if not webappquestionid:
-            invalid = True
-        else:
-            check_order = session.query(OrderMess).filter_by(id=int(webappquestionid)).first()
-            if check_order is None:
-                invalid = True
-            else:
-                check_anonym_order = session.query(AnonymOrder).filter_by(orderid=int(webappquestionid)).first()
-                invalid = check_anonym_order is None
+def webapp_anonym_viewer(
+    request: Request,
+    webappquestionid: str | None = Query(default=None),
+    web_service: Annotated[WebService, Depends(get_web_service)],
+):
+    invalid = web_service.is_invalid_anonym_viewer_request(question_id=webappquestionid)
 
     data = {
         "invalid": invalid,
