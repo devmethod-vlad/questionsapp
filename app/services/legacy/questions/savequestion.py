@@ -9,6 +9,7 @@ from questionsapp.services.auxillary.telegram import _tg_post
 from flask import current_app as app
 from pytz import timezone
 from app.services.legacy.roles.getrole import get_role
+from app.services.files.uploads import UploadLike
 
 east = timezone('Europe/Moscow')
 
@@ -205,7 +206,7 @@ def save_question(params):
         spacekey = _normalize_spacekey(params["spacekey"])
         message = params["question_text"]
         unionroleid = _normalize_int_flag(params["unionroleid"], default=0)
-        uploaded_files = params["question_files"] or []
+        uploaded_files: list[UploadLike] = params["question_files"] or []
         isfeedback = _normalize_int_flag(params["isfeedback"], default=0)
 
         if message and userid:
@@ -367,13 +368,13 @@ def save_question(params):
                 for file_item in uploaded_files:
                     filename = file_item.filename
                     filename = filename.strip().replace(" ", "_")
-                    file_size = round(file_item.content_length / 10000000, 3)
+                    file_size = round(file_item.size_bytes / 10000000, 3)
                     file_ext = filename.split('.')[-1].lower()
                     if file_size < int(app_conf_rec.uploadsize):
                         if filename in dirfiles:
                             filename = 'copy-' + filename
 
-                        file_item.save(os.path.join(user_order_path, filename))
+                        file_item.save_to(os.path.join(user_order_path, filename))
 
                         attach_type = ''
                         if file_ext in app.config['EXT_DICT']['imageExtension']:

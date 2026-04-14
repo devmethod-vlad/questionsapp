@@ -6,6 +6,7 @@ from questionsapp.services.auxillary.telegram import _tg_post
 from flask import current_app as app
 from database import db
 from app.services.legacy.roles.getrole import get_role
+from app.services.files.uploads import UploadLike
 
 
 def save_answer(params):
@@ -17,7 +18,7 @@ def save_answer(params):
 
         message = params["answer_text"]
 
-        uploaded_files = params["answer_files"]
+        uploaded_files: list[UploadLike] = params["answer_files"]
 
         if userid and orderid and message:
             is_answer_text_change = False
@@ -109,12 +110,12 @@ def save_answer(params):
                 for file_item in uploaded_files:
                     filename = file_item.filename
                     filename = filename.strip().replace(" ", "_")
-                    file_size = round(file_item.content_length / 10000000, 3)
+                    file_size = round(file_item.size_bytes / 10000000, 3)
                     file_ext = filename.split('.')[-1].lower()
                     if file_size < int(app_conf_rec.uploadsize):
                         if filename in dirfiles:
                             filename = 'copy-' + filename
-                        file_item.save(os.path.join(user_answer_path, filename))
+                        file_item.save_to(os.path.join(user_answer_path, filename))
                         attach_type = ''
                         if file_ext in app.config['EXT_DICT']['imageExtension']:
                             attach_type = 'image'

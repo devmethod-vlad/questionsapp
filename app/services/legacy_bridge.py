@@ -8,11 +8,7 @@ removed from the primary dependency set.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Iterator
-
-from fastapi import UploadFile
 
 from questionsapp.services.attachments.changeatttachpublicity import change_attach_publicity
 from questionsapp.services.attachments.deleteattachment import delete_attachment
@@ -62,23 +58,6 @@ def flask_context() -> Iterator[None]:
     except LegacyRuntimeUnavailable:
         # Let caller return a stable, legacy envelope instead of crashing.
         yield
-
-
-@dataclass
-class FileCompat:
-    """Compatibility wrapper to emulate Werkzeug FileStorage interface."""
-
-    source: UploadFile
-
-    @property
-    def filename(self) -> str | None:
-        return self.source.filename
-
-    def save(self, dst: str) -> None:
-        path = Path(dst)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.source.file.seek(0)
-        path.write_bytes(self.source.file.read())
 
 
 def as_jsonable(value: Any) -> Any:

@@ -12,7 +12,8 @@ from typing import Any
 from app.core.runtime_config import get_url_prefix
 from app.repositories.questions_list_repository import SqlAlchemyQuestionsListRepository
 from app.repositories.questions_repository import QuestionsReadRepository
-from app.services.legacy_bridge import FileCompat, LegacyServiceAdapter
+from app.services.files import AppUpload
+from app.services.legacy_bridge import LegacyServiceAdapter
 from app.services.questions_list_service import QuestionsListService
 
 
@@ -75,11 +76,13 @@ class QuestionsService:
 
     @staticmethod
     def save_or_update(action: str, payload: dict[str, Any], question_files: list[Any], answer_files: list[Any]):
+        """Route write actions to legacy handlers with native upload wrappers."""
+
         wrapped_payload = dict(payload)
         wrapped_payload.update(
             {
-                "question_files": [FileCompat(file_obj) for file_obj in question_files],
-                "answer_files": [FileCompat(file_obj) for file_obj in answer_files],
+                "question_files": [AppUpload(file_obj) for file_obj in question_files],
+                "answer_files": [AppUpload(file_obj) for file_obj in answer_files],
             }
         )
         return LegacyServiceAdapter.save_or_update(action, wrapped_payload)
