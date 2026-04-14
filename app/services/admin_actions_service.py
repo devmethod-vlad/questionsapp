@@ -15,6 +15,7 @@ import bcrypt
 from app.core.constants import BASE_ROLE, NULLSPACE
 from app.core.settings import get_settings
 from app.repositories.admin_repository import SqlAlchemyAdminRepository
+from app.repositories.auth_repository import SqlAlchemyAuthRepository
 from app.services.legacy.roles.getrole import get_role
 from app.services.auth.user_info_service import set_user_info
 
@@ -179,7 +180,8 @@ class AdminActionsService:
         self.repository.commit()
 
         self.repository.add_access_token(user_id=check_admin.userid, token=access_token)
-        user_info = set_user_info(check_admin.userid)
+        auth_repository = SqlAlchemyAuthRepository(session=self.repository.session)
+        user_info = set_user_info(check_admin.userid, repository=auth_repository)
         userinfo = {"token": access_token}
         userinfo.update(user_info)
         userinfo["userrole"] = {"id": 1, "name": "Администратор"}

@@ -19,6 +19,7 @@ from app.core.constants import (
     QUESTION_STATUS,
     SHOW_ALL_SPACES_ITEM,
 )
+from app.repositories.auth_repository import SqlAlchemyAuthRepository
 from app.repositories.questions_list_repository import SqlAlchemyQuestionsListRepository
 from app.services.legacy.roles.getrole import get_role
 from app.services.questions_list_helpers import (
@@ -210,7 +211,8 @@ class QuestionsListService:
         }
 
         if int(params["forsynchroflag"]) == 1:
-            token_check = check_user_token(params["usertoken"])
+            auth_repository = SqlAlchemyAuthRepository(session=self.repository.session)
+            token_check = check_user_token(params["usertoken"], repository=auth_repository)
             info_object["user_token_status"] = token_check["status"]
 
         return {"status": "ok", "info": info_object}
