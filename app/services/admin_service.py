@@ -7,6 +7,7 @@ from typing import Any
 from app.repositories.admin_repository import SqlAlchemyAdminRepository
 from app.services.admin_actions_service import AdminActionsService
 from app.services.legacy_bridge import LegacyServiceAdapter
+from app.services.question_action_service import QuestionActionService
 
 
 def _admin_actions_service() -> AdminActionsService:
@@ -32,6 +33,10 @@ class AdminService:
 
     @staticmethod
     def execute_service_action(payload: dict[str, Any]):
+        question_action_response = QuestionActionService.execute(payload)
+        if question_action_response is not None:
+            return question_action_response, 200
+
         native_response = _admin_actions_service().execute_service_action(payload)
         if native_response is not None:
             return native_response, 200

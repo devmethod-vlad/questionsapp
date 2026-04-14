@@ -28,7 +28,7 @@ def get_questions_api_data(
     """
 
     if repository is None:
-        from database import db
+        from app.db.legacy_db import db
 
         repository = SqlAlchemyQuestionsReadRepository(db.session)
 

@@ -1,4 +1,4 @@
-from database import db
+from app.db.legacy_db import db
 from questionsapp.models import AppConfig, OrderPublic, UserBaseRole
 from app.services.legacy.questions.savequestion import save_question
 from app.services.legacy.questions.saveanswer import save_answer

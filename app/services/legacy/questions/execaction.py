@@ -1,10 +1,10 @@
 import shutil
 import requests
-from database import db
+from app.db.legacy_db import db
 import os
 import json
 from sqlalchemy import desc
-from flask import current_app as app
+from app.core.legacy_runtime import legacy_app as app
 from questionsapp.models import AnswerMess, OrderMess, OrderStatus, OrdersInWork, TelegramTempMess
 from questionsapp.models import OrderSpace, AnonymOrder, AnonymOrderInfo, UserBaseRole
 from questionsapp.models import AnswerTelegramAttachment, Attachment, AnswerAttachment
