@@ -3,10 +3,13 @@ from app.db.models import OrderMess, OrderStatus, OrderSpace, UserBaseRole, Answ
 from app.db.models import AppConfig, OrdersInWork, AnswerMess, UserTelegramInfo, Attachment, AnonymOrder
 from app.db.models import TelegramTempMess
 from app.services.common.telegram import tg_post
-from app.core.legacy_runtime import legacy_app as app
+from app.core.constants import EXT_DICT, NULLROLE, NULLSPACE, QUESTION_STATUS
+from app.core.settings import get_settings
 from app.db.legacy_db import db
 from app.services.legacy.roles.getrole import get_role
 from app.services.files.uploads import UploadLike
+
+settings = get_settings()
 
 
 def save_answer(params):
@@ -55,11 +58,11 @@ def save_answer(params):
 
                 db.session.add(new_answer)
 
-                new_status_id = app.config['QUESTION_STATUS']['received_answer']['id']
+                new_status_id = QUESTION_STATUS['received_answer']['id']
 
                 if params["fastformflag"]:
                     if int(params["fastformflag"]) == 1:
-                        new_status_id = app.config['QUESTION_STATUS']['archive']['id']
+                        new_status_id = QUESTION_STATUS['archive']['id']
 
                 order_status_rec.statusid = new_status_id
                 db.session.commit()
@@ -92,10 +95,10 @@ def save_answer(params):
 
                 fileflag = 'exist'
 
-                if not os.path.isdir(app.config['ANSWER_ATTACHMENTS']):
-                    os.mkdir(app.config['ANSWER_ATTACHMENTS'])
+                if not os.path.isdir(settings.answer_attachments_dir):
+                    os.mkdir(settings.answer_attachments_dir)
 
-                user_path = os.path.join(app.config['ANSWER_ATTACHMENTS'], str(answer_userid))
+                user_path = os.path.join(settings.answer_attachments_dir, str(answer_userid))
 
                 if not os.path.isdir(user_path):
                     os.mkdir(user_path)
@@ -117,21 +120,21 @@ def save_answer(params):
                             filename = 'copy-' + filename
                         file_item.save_to(os.path.join(user_answer_path, filename))
                         attach_type = ''
-                        if file_ext in app.config['EXT_DICT']['imageExtension']:
+                        if file_ext in EXT_DICT['imageExtension']:
                             attach_type = 'image'
-                        elif file_ext in app.config['EXT_DICT']['wordExtension']:
+                        elif file_ext in EXT_DICT['wordExtension']:
                             attach_type = 'word'
-                        elif file_ext in app.config['EXT_DICT']['textDocExtension']:
+                        elif file_ext in EXT_DICT['textDocExtension']:
                             attach_type = 'textdoc'
-                        elif file_ext in app.config['EXT_DICT']['excelExtension']:
+                        elif file_ext in EXT_DICT['excelExtension']:
                             attach_type = 'excel'
-                        elif file_ext in app.config['EXT_DICT']['videoExtension']:
+                        elif file_ext in EXT_DICT['videoExtension']:
                             attach_type = 'video'
-                        elif file_ext in app.config['EXT_DICT']['audioExtension']:
+                        elif file_ext in EXT_DICT['audioExtension']:
                             attach_type = 'audio'
-                        elif file_ext in app.config['EXT_DICT']['pdfExtensions']:
+                        elif file_ext in EXT_DICT['pdfExtensions']:
                             attach_type = 'pdf'
-                        elif file_ext in app.config['EXT_DICT']['animExtension']:
+                        elif file_ext in EXT_DICT['animExtension']:
                             attach_type = 'animation'
                         new_attach = Attachment(type=attach_type, path=filename, caption='', public=1)
                         db.session.add(new_attach)
@@ -166,19 +169,19 @@ def save_answer(params):
                     message = '⚡ <b>Исполнитель обновил ответ на вопрос </b><em>...' + check_order.text[0:20] + '...</em><b>! Вы можете посмотреть содержание в телеграмме или открыв в веб-версии. Веб-версия может не работать на устройствах со старой версией приложения. В этом случае воспользуйтесь просмотром в телеграмме</b>'
 
                 if anon_quest_info is not None:
-                    if app.config['TEL_SEND_ANSWERMESS'] and (new_flag == 1 or is_answer_text_change or len(uploaded_files) != 0):
+                    if True and (new_flag == 1 or is_answer_text_change or len(uploaded_files) != 0):
                         try:
                             markup = json.dumps({'inline_keyboard': [
                                 [{"text": "👁 В телеграмме", "callback_data": "OrderShower-" + str(orderid)}],
                                 [{"text": "👁 В веб-версии", "web_app": {
-                                    "url": app.config['WEB_APP_ORDERSHOWER'] + "?webappquestionid=" + str(orderid)}}],
+                                    "url": settings.web_app_ordershower + "?webappquestionid=" + str(orderid)}}],
                             ]})
-                            # req = requests.post(app.config['TEL_SENDMESS_URL'],
+                            # req = requests.post(settings.tel_send_message_url,
                             #               json={'chat_id': anon_quest_info.tlgmid, 'text': message,
                             #                     'reply_markup': markup, 'parse_mode': 'HTML'})
 
                             req = tg_post(
-                                app.config['TEL_SENDMESS_URL'],
+                                settings.tel_send_message_url,
                                 json_body={
                                     'chat_id': anon_quest_info.tlgmid,
                                     'text': message,
@@ -186,7 +189,7 @@ def save_answer(params):
                                     'parse_mode': 'HTML'
                                 },
                                 timeout=(10.0, 40.0),
-                                socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                                socks_proxy=settings.tel_socks_proxy,
                             )
 
                             send_tel_notify = 'sent'
@@ -202,11 +205,11 @@ def save_answer(params):
                 check_status = OrderStatus.query.filter_by(orderid=check_order.id).first()
 
                 if check_tel_info is not None:
-                    if app.config['TEL_SEND_ANSWERMESS']:
+                    if True:
                         send_mess_flag = True
 
                         if check_order.userid == answer_userid:
-                            if not app.config['NOTIFY_SELF_ORDER']:
+                            if not settings.notify_self_order:
                                 send_mess_flag = False
 
                         if new_flag !=1 and not is_answer_text_change and len(uploaded_files) == 0:
@@ -225,12 +228,12 @@ def save_answer(params):
                                       "callback_data": "ShowDetails-1-" + str(check_status.statusid) + "-" + str(
                                           orderid) + "-💡-myAnsweredOrders-" + str(order_space_rec.spaceid) + "-1"}],
                                 ]})
-                                # req = requests.post(app.config['TEL_SENDMESS_URL'],
+                                # req = requests.post(settings.tel_send_message_url,
                                 #               json={'chat_id': check_tel_info.tlgmid, 'text': message,
                                 #                     'reply_markup': markup, 'parse_mode': 'HTML'})
 
                                 req = tg_post(
-                                    app.config['TEL_SENDMESS_URL'],
+                                    settings.tel_send_message_url,
                                     json_body={
                                         'chat_id': check_tel_info.tlgmid,
                                         'text': message,
@@ -238,7 +241,7 @@ def save_answer(params):
                                         'parse_mode': 'HTML'
                                     },
                                     timeout=(10.0, 40.0),
-                                    socks_proxy=app.config['TEL_SOCKS_PROXY'],
+                                    socks_proxy=settings.tel_socks_proxy,
                                 )
 
                                 send_tel_notify = 'sent'

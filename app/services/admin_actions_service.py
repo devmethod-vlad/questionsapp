@@ -12,10 +12,13 @@ from typing import Any
 
 import bcrypt
 
-from app.core.runtime_config import get_base_roles, get_default_format, get_null_space
+from app.core.constants import BASE_ROLE, NULLSPACE
+from app.core.settings import get_settings
 from app.repositories.admin_repository import SqlAlchemyAdminRepository
 from app.services.legacy.roles.getrole import get_role
 from app.services.auth.user_info_service import set_user_info
+
+settings = get_settings()
 
 
 @dataclass(slots=True)
@@ -41,7 +44,7 @@ class AdminActionsService:
         else:
             user_roles = self.repository.list_user_union_roles(user_id=int(userid)) if userid is not None else []
             user_role_ids = [item.unionroleid for item in user_roles]
-            if int(spaceid) != int(get_null_space()["id"]):
+            if int(spaceid) != int(NULLSPACE["id"]):
                 for space_role in self.repository.list_space_union_roles(space_id=int(spaceid)):
                     role_rec = self.repository.get_union_role(role_id=space_role.unionroleid)
                     if role_rec and role_rec.emiasid != 0 and role_rec.id in user_role_ids:
@@ -124,11 +127,11 @@ class AdminActionsService:
             }
 
         try:
-            hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
+            hashed = bcrypt.hashpw(adminpass.encode(settings.default_format), bcrypt.gensalt())
             self.repository.add_manual_user(
                 user_id=check_wiki_info.userid,
                 login=adminlogin,
-                password_hash=hashed.decode(get_default_format()),
+                password_hash=hashed.decode(settings.default_format),
             )
             self.repository.commit()
             return {"status": "ok"}
@@ -145,8 +148,8 @@ class AdminActionsService:
             return {"status": "error", "error_mess": "Admin doesn't exist"}
 
         try:
-            hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
-            manual_user.password = hashed.decode(get_default_format())
+            hashed = bcrypt.hashpw(adminpass.encode(settings.default_format), bcrypt.gensalt())
+            manual_user.password = hashed.decode(settings.default_format)
             self.repository.commit()
             return {"status": "ok"}
         except Exception as exc:  # pragma: no cover - legacy-compatible envelope
@@ -161,7 +164,7 @@ class AdminActionsService:
         if check_admin is None or check_admin.userid != int(userid):
             return {"status": "not_found", "error_mess": "WARN: Login not found"}
 
-        if not bcrypt.checkpw(password.encode(get_default_format()), check_admin.password.encode("UTF-8")):
+        if not bcrypt.checkpw(password.encode(settings.default_format), check_admin.password.encode("UTF-8")):
             return {"status": "not_match", "error_mess": "WARN: Data is incorrect"}
 
         check_role = self.repository.get_user_base_role(user_id=check_admin.userid)
@@ -191,7 +194,7 @@ class AdminActionsService:
         if check_role is None:
             return {"status": "error", "error_mess": "WARN: No user role rec"}
 
-        base_roles = get_base_roles()
+        base_roles = BASE_ROLE
         if check_role.roleid == int(base_roles["admin"]["id"]):
             check_role.roleid = int(base_roles["redactor"]["id"])
             self.repository.commit()

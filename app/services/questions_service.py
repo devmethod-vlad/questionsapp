@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.core.runtime_config import get_url_prefix
+from app.core.settings import get_settings
 from app.repositories.questions_list_repository import SqlAlchemyQuestionsListRepository
 from app.repositories.questions_repository import QuestionsReadRepository
 from app.services.files import AppUpload
@@ -45,7 +45,7 @@ class QuestionsService:
             page=normalized_page,
             page_count=normalized_page_count,
             public_only=public_only,
-            url_prefix=get_url_prefix(),
+            url_prefix=get_settings().url_prefix,
         )
 
     @staticmethod

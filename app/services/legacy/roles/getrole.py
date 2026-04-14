@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from app.core.runtime_config import get_base_roles
+from app.core.constants import BASE_ROLE
 
 def get_role(roleid):
-    base_roles = get_base_roles()
+    base_roles = BASE_ROLE
     for item in base_roles:
         if base_roles[item]["id"] == int(roleid):
             return item

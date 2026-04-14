@@ -12,12 +12,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from app.core.runtime_config import (
-    get_default_render_statuses,
-    get_null_role,
-    get_null_space,
-    get_question_statuses,
-    get_show_all_spaces_item,
+from app.core.constants import (
+    DEFAULT_RENDER_STATUSES,
+    NULLROLE,
+    NULLSPACE,
+    QUESTION_STATUS,
+    SHOW_ALL_SPACES_ITEM,
 )
 from app.repositories.questions_list_repository import SqlAlchemyQuestionsListRepository
 from app.services.legacy.roles.getrole import get_role
@@ -72,7 +72,7 @@ class QuestionsListService:
 
             role = get_role(user_role.roleid)
             role_condition = ""
-            if role == "personal" or (role == "redactor" and order_status.statusid == get_question_statuses()["trash"]["id"]):
+            if role == "personal" or (role == "redactor" and order_status.statusid == QUESTION_STATUS["trash"]["id"]):
                 role_condition = f" and ordermess.userid={user_id}"
 
             query = f"{sql_find_question} where os.statusid={order_status.statusid} {role_condition}"
@@ -95,7 +95,7 @@ class QuestionsListService:
         if not validate_questions_list_params(params):
             return {"status": "error", "error_mess": "WARN: No params"}
 
-        question_statuses = get_question_statuses()
+        question_statuses = QUESTION_STATUS
         if int(params["statusid"]) == int(question_statuses["public"]["id"]):
             params["statusid"] = 0
 
@@ -106,7 +106,7 @@ class QuestionsListService:
             role=role,
             params=params,
             question_statuses=question_statuses,
-            default_render_statuses=get_default_render_statuses(),
+            default_render_statuses=DEFAULT_RENDER_STATUSES,
         )
 
         limit_condition = build_limit_condition(numeric_search=numeric_search, params=params)
@@ -172,7 +172,7 @@ class QuestionsListService:
             {"id": row[0], "title": row[1], "spacekey": row[2]} for row in self.repository.execute_rows(query=ALL_SPACES_QUERY)
         ]
 
-        null_space = get_null_space()
+        null_space = NULLSPACE
         if not any(item["spacekey"] == null_space["spacekey"] for item in available_spaces):
             available_spaces.append(
                 {"id": null_space["id"], "title": null_space["title"], "spacekey": null_space["spacekey"]}
@@ -181,7 +181,7 @@ class QuestionsListService:
         if available_spaces:
             available_spaces = sorted(available_spaces, key=lambda item: item["title"])
 
-        available_spaces.insert(0, get_show_all_spaces_item())
+        available_spaces.insert(0, SHOW_ALL_SPACES_ITEM)
 
         all_count_query = (
             select_count
@@ -221,7 +221,7 @@ class QuestionsListService:
             return []
 
         dataframe = pd.DataFrame(records)
-        null_role = get_null_role()
+        null_role = NULLROLE
         dataframe["order_unionrole_id"] = dataframe["order_unionrole_id"].fillna(null_role["id"])
         dataframe["order_unionrole_name"] = dataframe["order_unionrole_name"].fillna(null_role["name"])
         dataframe["order_unionrole_emiasid"] = dataframe["order_unionrole_emiasid"].fillna(null_role["emiasid"])
