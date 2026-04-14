@@ -31,6 +31,15 @@ class AppSettings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
+    app_name: str = "questionsapp-fastapi"
+    app_version: str = "1.0.0"
+    api_prefix: str = Field(default="/eduportal/questions")
+    enable_cors: bool = True
+    cors_allow_origins: list[str] = ["*"]
+    cors_allow_methods: list[str] = ["*"]
+    cors_allow_headers: list[str] = ["*"]
+    include_request_id_header: bool = True
+
     prod: bool = Field(default=False, validation_alias="PROD")
 
     pg_user: str = Field(validation_alias="POSTGRES_USER")
@@ -126,7 +135,6 @@ class AppSettings(BaseSettings):
     def runtime_config_dict(self) -> dict[str, Any]:
         """Export a compatibility config mapping for Celery/runtime consumers."""
 
-        path = os.getcwd()
         return {
             "FLASK_ENV": self.flask_env,
             "PG_USER": self.pg_user,
@@ -161,22 +169,22 @@ class AppSettings(BaseSettings):
             "CONFLUENCE_SPACEINFO_PAGE": self.confluence_spaceinfo_page,
             "CONFLUENCE_PUBLIC_TESTPAGE_ID": self.confluence_public_testpage_id,
             "TEST_DATA_PATH": self.test_data_path,
-            "JS_FOLDER": os.path.join(path, "static/js/"),
-            "CSS_FOLDER": os.path.join(path, "static/css/"),
-            "IMGS_SRC": os.path.join(path, "static/imgs/"),
-            "FONTS_FOLDER": os.path.join(path, "static/fonts/"),
-            "MAIN_JS_FOLDER": os.path.join(path, "static/main/js/"),
-            "MAIN_CSS_FOLDER": os.path.join(path, "static/main/css/"),
-            "MAIN_IMGS_FOLDER": os.path.join(path, "static/main/imgs/"),
-            "WEBAPPAUTH_JS_FOLDER": os.path.join(path, "static/webappauth/js/"),
-            "WEBAPPAUTH_CSS_FOLDER": os.path.join(path, "static/webappauth/css/"),
-            "WEBAPPAUTH_IMGS_FOLDER": os.path.join(path, "static/webappauth/imgs/"),
-            "WEBAPPMAIN_JS_FOLDER": os.path.join(path, "static/webappmain/js/"),
-            "WEBAPPMAIN_CSS_FOLDER": os.path.join(path, "static/webappmain/css/"),
-            "WEBAPPMAIN_IMGS_FOLDER": os.path.join(path, "static/webappmain/imgs/"),
-            "WAPPANONYMVIEWER_JS_FOLDER": os.path.join(path, "static/webappanonymviewer/js/"),
-            "WAPPANONYMVIEWER_CSS_FOLDER": os.path.join(path, "static/webappanonymviewer/css/"),
-            "WAPPANONYMVIEWER_IMGS_FOLDER": os.path.join(path, "static/webappanonymviewer/imgs/"),
+            "JS_FOLDER": self.js_folder,
+            "CSS_FOLDER": self.css_folder,
+            "IMGS_SRC": self.imgs_src,
+            "FONTS_FOLDER": self.fonts_folder,
+            "MAIN_JS_FOLDER": self.main_js_folder,
+            "MAIN_CSS_FOLDER": self.main_css_folder,
+            "MAIN_IMGS_FOLDER": self.main_imgs_folder,
+            "WEBAPPAUTH_JS_FOLDER": self.webappauth_js_folder,
+            "WEBAPPAUTH_CSS_FOLDER": self.webappauth_css_folder,
+            "WEBAPPAUTH_IMGS_FOLDER": self.webappauth_imgs_folder,
+            "WEBAPPMAIN_JS_FOLDER": self.webappmain_js_folder,
+            "WEBAPPMAIN_CSS_FOLDER": self.webappmain_css_folder,
+            "WEBAPPMAIN_IMGS_FOLDER": self.webappmain_imgs_folder,
+            "WAPPANONYMVIEWER_JS_FOLDER": self.wappanonymviewer_js_folder,
+            "WAPPANONYMVIEWER_CSS_FOLDER": self.wappanonymviewer_css_folder,
+            "WAPPANONYMVIEWER_IMGS_FOLDER": self.wappanonymviewer_imgs_folder,
             "QUESTION_ATTACHMENTS": self.question_attachments_dir,
             "ANSWER_ATTACHMENTS": self.answer_attachments_dir,
             "TEL_SENDMESS_URL": self.tel_send_message_url,
@@ -203,6 +211,74 @@ class AppSettings(BaseSettings):
             "NOTIFY_SELF_ORDER": self.notify_self_order,
             "WEB_APP_ORDERSHOWER": self.web_app_ordershower,
         }
+
+    @property
+    def root_path(self) -> str:
+        return os.getcwd()
+
+    @property
+    def js_folder(self) -> str:
+        return os.path.join(self.root_path, "static/js/")
+
+    @property
+    def css_folder(self) -> str:
+        return os.path.join(self.root_path, "static/css/")
+
+    @property
+    def imgs_src(self) -> str:
+        return os.path.join(self.root_path, "static/imgs/")
+
+    @property
+    def fonts_folder(self) -> str:
+        return os.path.join(self.root_path, "static/fonts/")
+
+    @property
+    def main_js_folder(self) -> str:
+        return os.path.join(self.root_path, "static/main/js/")
+
+    @property
+    def main_css_folder(self) -> str:
+        return os.path.join(self.root_path, "static/main/css/")
+
+    @property
+    def main_imgs_folder(self) -> str:
+        return os.path.join(self.root_path, "static/main/imgs/")
+
+    @property
+    def webappauth_js_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappauth/js/")
+
+    @property
+    def webappauth_css_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappauth/css/")
+
+    @property
+    def webappauth_imgs_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappauth/imgs/")
+
+    @property
+    def webappmain_js_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappmain/js/")
+
+    @property
+    def webappmain_css_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappmain/css/")
+
+    @property
+    def webappmain_imgs_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappmain/imgs/")
+
+    @property
+    def wappanonymviewer_js_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappanonymviewer/js/")
+
+    @property
+    def wappanonymviewer_css_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappanonymviewer/css/")
+
+    @property
+    def wappanonymviewer_imgs_folder(self) -> str:
+        return os.path.join(self.root_path, "static/webappanonymviewer/imgs/")
 
 
 @lru_cache(maxsize=1)
