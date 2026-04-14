@@ -4,24 +4,20 @@ import re
 import markdown
 from celery import shared_task
 from pytz import timezone
-from sqlalchemy import and_, desc
 
 from app.core.settings import get_settings
-from app.db.engine import SessionFactory
 from app.integrations import ConfluenceGateway
-from app.db.models import (
-    AnswerAttachment,
-    AnswerMess,
-    AppConfig,
-    Attachment,
-    OrderAttachment,
-    OrderMess,
-    OrderPublic,
-    OrderSpace,
-    OrderStatus,
-    OrderUnionRole,
-    Spaces,
-    UnionRole,
+from app.services.workers.public_order_data import (
+    delete_order_public,
+    get_order_space,
+    get_order_with_answer,
+    get_other_union_role,
+    get_space_by_id,
+    get_union_role_name,
+    list_public_answer_attachment_paths,
+    list_public_order_attachment_paths,
+    list_space_public_order_ids_with_answer_date,
+    set_public_active,
 )
 
 SETTINGS = get_settings()
@@ -106,9 +102,7 @@ def setContenType(extension):
 
 
 def _set_public_active(value):
-    app_conf = SessionFactory().query(AppConfig).order_by(desc('created_at')).limit(1).first()
-    app_conf.ispublicactive = value
-    SessionFactory().commit()
+    set_public_active(value)
 
 
 def _create_confluence_client():
@@ -128,40 +122,21 @@ def _build_attachment_url(base_url, user_id, order_id, path):
 
 
 def _get_order_attachments(order_id, user_id):
-    attachments = []
-    attachs = SessionFactory().query(OrderAttachment).filter_by(orderid=order_id).order_by(desc(OrderAttachment.created_at)).all()
-    for attach_item in attachs:
-        attachment = SessionFactory().query(Attachment).filter_by(id=attach_item.attachid).first()
-        if attachment.public == 1:
-            attachments.append(
-                _build_attachment_url(SETTINGS.question_attachments_dir, user_id, order_id, attachment.path)
-            )
-    return attachments
+    return [
+        _build_attachment_url(SETTINGS.question_attachments_dir, user_id, order_id, path)
+        for path in list_public_order_attachment_paths(order_id)
+    ]
 
 
 def _get_answer_attachments(answer_id, order_id, user_id):
-    attachments = []
-    answer_attachments = SessionFactory().query(AnswerAttachment).filter_by(answerid=answer_id).order_by(
-        desc(AnswerAttachment.created_at)
-    ).all()
-    for answer_attachment in answer_attachments:
-        attachment = SessionFactory().query(Attachment).filter_by(id=answer_attachment.attachid).first()
-        if attachment.public == 1:
-            attachments.append(
-                _build_attachment_url(SETTINGS.answer_attachments_dir, user_id, order_id, attachment.path)
-            )
-    return attachments
+    return [
+        _build_attachment_url(SETTINGS.answer_attachments_dir, user_id, order_id, path)
+        for path in list_public_answer_attachment_paths(answer_id)
+    ]
 
 
 def _get_union_role_name(order_id, other_role_id):
-    order_union_role = SessionFactory().query(OrderUnionRole).filter_by(orderid=order_id).first()
-    if order_union_role is None:
-        return ''
-    if order_union_role.unionroleid == other_role_id:
-        return ''
-
-    union_role = SessionFactory().query(UnionRole).filter_by(id=order_union_role.unionroleid).first()
-    return union_role.name
+    return get_union_role_name(order_id, other_role_id)
 
 
 def _build_table_header(role_out_flag):
@@ -244,12 +219,12 @@ def _build_content_dict(space_orders_list, other_role_id):
 
     for item in space_orders_list:
         order_id = int(item['id'])
-        order = SessionFactory().query(OrderMess).filter_by(id=order_id).first()
-        public_order = SessionFactory().query(OrderPublic).filter_by(orderid=order_id).first()
+        order, answer = get_order_with_answer(order_id)
+        public_order = item.get('is_public', True)
         if not public_order:
             continue
-
-        answer = SessionFactory().query(AnswerMess).filter_by(orderid=order_id).first()
+        if order is None or answer is None:
+            continue
         order_time = order.created_at.astimezone(east)
         answer_time = answer.modified_at.astimezone(east)
 
@@ -281,29 +256,12 @@ def publicOrder(orderid):
 
     try:
         confluence = _create_confluence_client()
-        order_space = SessionFactory().query(OrderSpace).filter_by(orderid=int(orderid)).first()
-
-        space_orders_list = []
-        all_space_orders = SessionFactory().query(OrderSpace).filter(OrderSpace.spaceid == order_space.spaceid).all()
-        other_union_role = SessionFactory().query(UnionRole).filter(and_((UnionRole.name == 'Другое'), (UnionRole.emiasid == 0))).first()
-
-        role_out_flag = False
-        for space_order in all_space_orders:
-            public_order = SessionFactory().query(OrderPublic).filter_by(orderid=space_order.orderid).first()
-            order_status = SessionFactory().query(OrderStatus).filter_by(orderid=space_order.orderid).first()
-            order_union_role = SessionFactory().query(OrderUnionRole).filter_by(orderid=space_order.orderid).first()
-
-            if order_union_role is not None and public_order is not None:
-                if order_union_role.unionroleid != other_union_role.id:
-                    role_out_flag = True
-
-            if order_status.statusid not in [1, 2, 5] and public_order:
-                answer = SessionFactory().query(AnswerMess).filter_by(orderid=int(space_order.orderid)).first()
-                space_orders_list.append({'id': space_order.orderid, 'answer_date': answer.modified_at})
-
-        space_orders_list.sort(key=lambda item: item['answer_date'], reverse=True)
-
-        space_record = SessionFactory().query(Spaces).filter_by(id=order_space.spaceid).first()
+        order_space = get_order_space(int(orderid))
+        other_union_role = get_other_union_role()
+        space_orders_list, role_out_flag = list_space_public_order_ids_with_answer_date(
+            order_space.spaceid, other_union_role.id
+        )
+        space_record = get_space_by_id(order_space.spaceid)
         space = space_record.spacekey
         content_dict = _build_content_dict(space_orders_list, other_union_role.id)
 
@@ -362,7 +320,4 @@ def publicOrder(orderid):
         print(str(e))
         print('ERROR during public question' + str(orderid))
         _set_public_active(0)
-        check_public = SessionFactory().query(OrderPublic).filter_by(orderid=int(orderid)).first()
-        if check_public is not None:
-            SessionFactory().delete(check_public)
-            SessionFactory().commit()
+        delete_order_public(int(orderid))

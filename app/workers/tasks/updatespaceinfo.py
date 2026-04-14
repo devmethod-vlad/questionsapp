@@ -7,34 +7,27 @@ import requests
 import pandas as pd
 import cx_Oracle
 from bs4 import BeautifulSoup
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from celery import shared_task
 from celery.signals import after_setup_logger
 
-from app.core.constants import NULLSPACE
 from app.core.settings import get_settings
 from app.integrations import ConfluenceGateway
 from app.db.engine import SessionFactory
-from app.db.models import (
-    Spaces,
-    BotSpaces,
-    OrderSpace,
-    UnionRole,
-    SpaceUnionRoleActive,
-    SpaceUnionRole,
+from app.services.workers.space_info_db import (
+    ensure_null_space,
+    ensure_other_custom_role,
+    sync_active_flags,
+    sync_bot_spaces,
+    sync_spaces,
+    sync_unionroles_custom,
+    sync_unionroles_supp,
 )
 from supp_db.queries.suppallroles import supp_all_roles
 from supp_db.supp_connection import dsn
 
 
-
 SETTINGS = get_settings()
-# ==========
-# Константы
-# ==========
-NULL_SPACE_KEY = NULLSPACE["spacekey"]
-NULL_SPACE_TITLE = NULLSPACE["title"]
 LOG_PREFIX = "[SpaceInfoUpdate] "
 
 F_PUBLISHED = "Опубликовано на Viewport"
@@ -44,7 +37,6 @@ F_USED_BY_MO = "Пространством пользуются МО"
 F_ROLE_IDS = "id ролей, для которых предназначено пространство"
 F_CUSTOM_ROLE_NAME = "Название функционала, если отсутствует id роли"
 
-# Настройка root logger для вывода в stdout
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] %(levelname)s %(name)s: %(message)s',
@@ -54,7 +46,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Настройка логгера для Celery
+
 @after_setup_logger.connect
 def setup_celery_logger(logger, *args, **kwargs):
     formatter = logging.Formatter('[%(asctime)s] %(levelname)s %(name)s: %(message)s')
@@ -63,23 +55,11 @@ def setup_celery_logger(logger, *args, **kwargs):
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-# =========================
-# Утилиты и обертки сессии
-# =========================
-def safe_commit(session: Session) -> None:
-    try:
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        logger.error(LOG_PREFIX + f"DB commit failed: {e}")
-        raise
 
 def get_session() -> Session:
     return SessionFactory()
 
-# ======================
-# Загрузка внешних данных
-# ======================
+
 def get_supp_roles() -> Dict[int, str]:
     try:
         if SETTINGS.flask_env == "production":
@@ -98,6 +78,7 @@ def get_supp_roles() -> Dict[int, str]:
     except Exception as e:
         logger.error(LOG_PREFIX + f"Supp roles loading failed: {e}")
         raise
+
 
 def fetch_confluence_spaceinfo() -> List[Dict[str, Any]]:
     try:
@@ -126,15 +107,16 @@ def fetch_confluence_spaceinfo() -> List[Dict[str, Any]]:
         logger.error(LOG_PREFIX + f"Confluence fetch/parse failed: {e}")
         raise
 
+
 def parse_source_rows(
     rows: List[Dict[str, str]]
 ) -> Tuple[
-    Dict[str, str],  # spaces_dict
-    Dict[str, str],  # bot_spaces_dict
-    Dict[str, List[int]],  # unionroles_supp
-    Dict[str, List[str]],  # unionroles_custom
-    List[str],  # active_space_keys
-    List[str],  # rows_with_error
+    Dict[str, str],
+    Dict[str, str],
+    Dict[str, List[int]],
+    Dict[str, List[str]],
+    List[str],
+    List[str],
 ]:
     spaces_dict: Dict[str, str] = {}
     bot_spaces_dict: Dict[str, str] = {}
@@ -159,9 +141,8 @@ def parse_source_rows(
             spaces_dict[spacekey] = spacename
         if used_by_mo and spacekey and spacename:
             bot_spaces_dict[spacekey] = spacename
-        if role_ids_raw or custom_names_raw:
-            if spacekey:
-                active_space_keys.append(spacekey)
+        if (role_ids_raw or custom_names_raw) and spacekey:
+            active_space_keys.append(spacekey)
         if role_ids_raw and spacekey:
             try:
                 ids = []
@@ -171,8 +152,7 @@ def parse_source_rows(
                         continue
                     ids.append(int(s))
                 if ids:
-                    unique_ids = list(dict.fromkeys(ids).keys())
-                    unionroles_supp[spacekey] = unique_ids
+                    unionroles_supp[spacekey] = list(dict.fromkeys(ids).keys())
             except Exception:
                 if spacename:
                     rows_with_error.append(spacename)
@@ -197,268 +177,6 @@ def parse_source_rows(
         rows_with_error,
     )
 
-# ======================
-# Операции с БД с логированием
-# ======================
-def ensure_null_space(session: Session) -> Spaces:
-    null_space = session.query(Spaces).filter_by(spacekey=NULL_SPACE_KEY).first()
-    if null_space is None:
-        null_space = Spaces(spacekey=NULL_SPACE_KEY, title=NULL_SPACE_TITLE)
-        session.add(null_space)
-        safe_commit(session)
-        logger.info(
-            LOG_PREFIX
-            + f"Создан nullspace: id={null_space.id} key={NULL_SPACE_KEY} title={NULL_SPACE_TITLE}"
-        )
-    else:
-        # Поддерживать title актуальным
-        if null_space.title != NULL_SPACE_TITLE:
-            old_title = null_space.title
-            null_space.title = NULL_SPACE_TITLE
-            safe_commit(session)
-            logger.info(
-                LOG_PREFIX
-                + f"Title nullspace обновлен: id={null_space.id} key={null_space.spacekey} old_title={old_title} new_title={NULL_SPACE_TITLE}"
-            )
-    return null_space
-
-def sync_spaces(session: Session, spaces_dict: Dict[str, str], null_space: Spaces) -> None:
-    existing: List[Spaces] = session.query(Spaces).all()
-    existing_keys = {s.spacekey for s in existing}
-    to_delete = [s for s in existing if s.spacekey not in spaces_dict and s.spacekey != NULL_SPACE_KEY]
-    for ex in to_delete:
-        orders = session.query(OrderSpace).filter(OrderSpace.spaceid == ex.id).all()
-        for o in orders:
-            logger.info(
-                LOG_PREFIX +
-                f"Переведен заказ в nullspace: orderid={o.id} old_spaceid={ex.id} -> new_spaceid={null_space.id}"
-            )
-            o.spaceid = null_space.id
-        logger.info(
-            LOG_PREFIX +
-            f"Удалено пространство: id={ex.id} spacekey={ex.spacekey} title={ex.title}"
-        )
-        session.delete(ex)
-    safe_commit(session)
-    for key, title in spaces_dict.items():
-        space = session.query(Spaces).filter_by(spacekey=key).first()
-        if space is None:
-            new_space = Spaces(spacekey=key, title=title)
-            session.add(new_space)
-            safe_commit(session)
-            logger.info(
-                LOG_PREFIX +
-                f"Добавлено пространство: id={new_space.id} spacekey={key} title={title}"
-            )
-        else:
-            if space.title != title:
-                old_title = space.title
-                space.title = title
-                safe_commit(session)
-                logger.info(
-                    LOG_PREFIX +
-                    f"Обновлено пространство: id={space.id} spacekey={key} old_title={old_title} new_title={title}"
-                )
-
-def sync_bot_spaces(session: Session, bot_spaces_dict: Dict[str, str]) -> None:
-    existing: List[BotSpaces] = session.query(BotSpaces).all()
-    for ex in existing:
-        if ex.spacekey not in bot_spaces_dict:
-            logger.info(
-                LOG_PREFIX +
-                f"Удалено BotSpace: id={ex.id} spacekey={ex.spacekey} title={ex.title}"
-            )
-            session.delete(ex)
-    safe_commit(session)
-    for key, title in bot_spaces_dict.items():
-        bspace = session.query(BotSpaces).filter_by(spacekey=key).first()
-        if bspace is None:
-            new_bspace = BotSpaces(spacekey=key, title=title)
-            session.add(new_bspace)
-            safe_commit(session)
-            logger.info(
-                LOG_PREFIX +
-                f"Добавлен BotSpace: id={new_bspace.id} spacekey={key} title={title}"
-            )
-        else:
-            if bspace.title != title:
-                old_title = bspace.title
-                bspace.title = title
-                safe_commit(session)
-                logger.info(
-                    LOG_PREFIX +
-                    f"Обновлен BotSpace: id={bspace.id} spacekey={key} old_title={old_title} new_title={title}"
-                )
-
-def sync_active_flags(session: Session, active_space_keys: List[str]) -> None:
-    active_space_ids: List[int] = []
-    for sk in active_space_keys:
-        space = session.query(Spaces).filter_by(spacekey=sk).first()
-        if space:
-            active_space_ids.append(space.id)
-    existing_active = session.query(SpaceUnionRoleActive).all()
-    existing_active_ids = {a.spaceid for a in existing_active}
-    for sid in active_space_ids:
-        rec = session.query(SpaceUnionRoleActive).filter_by(spaceid=sid).first()
-        if rec is None:
-            new_active = SpaceUnionRoleActive(spaceid=sid, active=1)
-            session.add(new_active)
-            safe_commit(session)
-            logger.info(
-                LOG_PREFIX +
-                f"Добавлен активный SpaceUnionRoleActive: id={new_active.id} spaceid={sid} active=1"
-            )
-        else:
-            if rec.active != 1:
-                old_value = rec.active
-                rec.active = 1
-                safe_commit(session)
-                logger.info(
-                    LOG_PREFIX +
-                    f"Обновлен флаг активности: id={rec.id} spaceid={sid} old_active={old_value} new_active=1"
-                )
-    for sid in existing_active_ids:
-        if sid not in active_space_ids:
-            rec = session.query(SpaceUnionRoleActive).filter_by(spaceid=sid).first()
-            if rec and rec.active != 0:
-                old_value = rec.active
-                rec.active = 0
-                safe_commit(session)
-                logger.info(
-                    LOG_PREFIX +
-                    f"Обновлен флаг активности: id={rec.id} spaceid={sid} old_active={old_value} new_active=0"
-                )
-
-def ensure_other_custom_role(session: Session) -> UnionRole:
-    other = session.query(UnionRole).filter(
-        and_(UnionRole.name == "Другое", UnionRole.emiasid == 0)
-    ).first()
-    if other is None:
-        other = UnionRole(name="Другое", emiasid=0)
-        session.add(other)
-        safe_commit(session)
-        logger.info(
-            LOG_PREFIX +
-            f"Добавлена роль 'Другое': id={other.id} name=Другое emiasid=0"
-        )
-    return other
-
-def sync_unionroles_supp(
-    session: Session,
-    unionroles_supp: Dict[str, List[int]],
-    supproles_dict: Dict[int, str],
-) -> None:
-    for spacekey, ids in unionroles_supp.items():
-        space = session.query(Spaces).filter_by(spacekey=spacekey).first()
-        if space is None:
-            continue
-        current_emias_ids: List[int] = []
-        for link in session.query(SpaceUnionRole).filter_by(spaceid=space.id).all():
-            ur = session.query(UnionRole).filter_by(id=link.unionroleid).first()
-            if ur and ur.emiasid != 0:
-                current_emias_ids.append(ur.emiasid)
-        desired_ids = list(dict.fromkeys(ids).keys())
-        for emias_id in current_emias_ids:
-            if emias_id not in desired_ids:
-                role = session.query(UnionRole).filter_by(emiasid=emias_id).first()
-                if role:
-                    link = session.query(SpaceUnionRole).filter(
-                        and_(SpaceUnionRole.spaceid == space.id, SpaceUnionRole.unionroleid == role.id)
-                    ).first()
-                    if link:
-                        logger.info(
-                            LOG_PREFIX +
-                            f"Удалена связь SpaceUnionRole: id={link.id} spaceid={space.id} roleid={role.id} emiasid={emias_id}"
-                        )
-                        session.delete(link)
-        for emias_id in desired_ids:
-            role = session.query(UnionRole).filter_by(emiasid=emias_id).first()
-            role_name = supproles_dict.get(emias_id)
-            if role is None:
-                if role_name:
-                    role = UnionRole(emiasid=emias_id, name=role_name)
-                    session.add(role)
-                    session.flush()
-                    logger.info(
-                        LOG_PREFIX +
-                        f"Добавлена роль SUPP: id={role.id} emiasid={emias_id} name={role_name}"
-                    )
-                else:
-                    continue
-            else:
-                if role_name and role.name != role_name:
-                    old_name = role.name
-                    role.name = role_name
-                    logger.info(
-                        LOG_PREFIX +
-                        f"Имя роли SUPP обновлено: id={role.id} emiasid={emias_id} old_name={old_name} new_name={role_name}"
-                    )
-            link = session.query(SpaceUnionRole).filter(
-                and_(SpaceUnionRole.spaceid == space.id, SpaceUnionRole.unionroleid == role.id)
-            ).first()
-            if link is None:
-                new_link = SpaceUnionRole(spaceid=space.id, unionroleid=role.id)
-                session.add(new_link)
-                session.flush()
-                logger.info(
-                    LOG_PREFIX +
-                    f"Добавлена связь SpaceUnionRole: id={new_link.id} spaceid={space.id} roleid={role.id} emiasid={emias_id}"
-                )
-    safe_commit(session)
-
-def sync_unionroles_custom(
-    session: Session,
-    unionroles_custom: Dict[str, List[str]],
-) -> None:
-    for spacekey, names in unionroles_custom.items():
-        space = session.query(Spaces).filter_by(spacekey=spacekey).first()
-        if space is None:
-            continue
-        desired_names = list(dict.fromkeys([n.strip() for n in names if n.strip()]))
-        current_custom_names: List[str] = []
-        for link in session.query(SpaceUnionRole).filter_by(spaceid=space.id).all():
-            role = session.query(UnionRole).filter_by(id=link.unionroleid).first()
-            if role and role.emiasid == 0:
-                current_custom_names.append(role.name)
-        for name in current_custom_names:
-            if name not in desired_names:
-                role = session.query(UnionRole).filter(
-                    and_(UnionRole.name == name, UnionRole.emiasid == 0)
-                ).first()
-                if role:
-                    link = session.query(SpaceUnionRole).filter(
-                        and_(SpaceUnionRole.spaceid == space.id, SpaceUnionRole.unionroleid == role.id)
-                    ).first()
-                    if link:
-                        logger.info(
-                            LOG_PREFIX +
-                            f"Удалена кастомная связь SpaceUnionRole: id={link.id} spaceid={space.id} roleid={role.id} name={name}"
-                        )
-                        session.delete(link)
-        for name in desired_names:
-            role = session.query(UnionRole).filter(
-                and_(UnionRole.name == name, UnionRole.emiasid == 0)
-            ).first()
-            if role is None:
-                role = UnionRole(name=name, emiasid=0)
-                session.add(role)
-                session.flush()
-                logger.info(
-                    LOG_PREFIX +
-                    f"Добавлена кастомная роль: id={role.id} name={name} emiasid=0"
-                )
-            link = session.query(SpaceUnionRole).filter(
-                and_(SpaceUnionRole.spaceid == space.id, SpaceUnionRole.unionroleid == role.id)
-            ).first()
-            if link is None:
-                new_link = SpaceUnionRole(spaceid=space.id, unionroleid=role.id)
-                session.add(new_link)
-                session.flush()
-                logger.info(
-                    LOG_PREFIX +
-                    f"Добавлена кастомная связь SpaceUnionRole: id={new_link.id} spaceid={space.id} roleid={role.id} name={name}"
-                )
-    safe_commit(session)
 
 @shared_task(
     bind=True,
@@ -485,13 +203,13 @@ def update_spaces_info(self) -> Dict[str, Any]:
                 LOG_PREFIX + "Ошибки при обработке строк таблицы пространств: "
                 + ", ".join(rows_with_error)
             )
-        null_space = ensure_null_space(session)
-        sync_spaces(session, spaces_dict, null_space)
-        sync_bot_spaces(session, bot_spaces_dict)
-        sync_active_flags(session, active_space_keys)
-        sync_unionroles_supp(session, unionroles_supp, supproles_dict)
-        ensure_other_custom_role(session)
-        sync_unionroles_custom(session, unionroles_custom)
+        null_space = ensure_null_space(session, logger, LOG_PREFIX)
+        sync_spaces(session, spaces_dict, null_space, logger, LOG_PREFIX)
+        sync_bot_spaces(session, bot_spaces_dict, logger, LOG_PREFIX)
+        sync_active_flags(session, active_space_keys, logger, LOG_PREFIX)
+        sync_unionroles_supp(session, unionroles_supp, supproles_dict, logger, LOG_PREFIX)
+        ensure_other_custom_role(session, logger, LOG_PREFIX)
+        sync_unionroles_custom(session, unionroles_custom, logger, LOG_PREFIX)
 
         logger.info(LOG_PREFIX + "Update finished successfully")
         return {"status": "ok"}
