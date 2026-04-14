@@ -12,7 +12,7 @@
 | `questionsapp/services/roles/getrole.py` | **Migrate (wave-1 completed)** | backend | 2026-04-13 | Перенесено в `app/services/legacy/roles/getrole.py`, старый файл — shim. |
 | `questionsapp/services/{attachments,appconfig,auxillary,roles,stats,user}/*` | Migrate (planned) | backend | 2026-05-15 | Дальнейший перенос по доменам без изменения API-контрактов. |
 | `questionsapp/services/{questionslist,status}/*` | **Deleted (cleanup completed)** | backend | 2026-04-14 | Legacy wrappers/orphan helpers удалены как неиспользуемые в active runtime. |
-| `supp_db/*` | Keep as infra (temporary) | backend + dba | 2026-05-01 | Вынести SQL-код в `app/repositories/` по приоритету сценариев. |
+| `supp_db/*` | **Deleted (cleanup completed)** | backend + dba | 2026-04-14 | Active SQL/constants и Oracle helper перенесены в `app/repositories/supp_db/*` и `app/integrations/oracle/*`; root `supp_db/` удалён. |
 | `database.py` | Migrate | backend | 2026-05-01 | Переместить в `app/db/` после консолидации session lifecycle. |
 | `config.py` (root) | Delete (после единого config source) | backend | 2026-05-01 | Дубликат runtime-конфигурации, целевой источник `app/core/config.py`. |
 | `celery_worker.py` | Migrate | backend | 2026-05-10 | Перенос в `app/workers/` на этапе 4.1. |

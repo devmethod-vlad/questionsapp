@@ -23,8 +23,8 @@ from app.services.workers.space_info_db import (
     sync_unionroles_custom,
     sync_unionroles_supp,
 )
-from supp_db.queries.suppallroles import supp_all_roles
-from supp_db.supp_connection import dsn
+from app.repositories.supp_db.queries.suppallroles import supp_all_roles
+from app.integrations.oracle.supp_connection import dsn
 
 
 SETTINGS = get_settings()

@@ -31,7 +31,7 @@ from app.services.questions_list_helpers import (
     validate_questions_list_params,
 )
 from app.services.auth.user_token_service import check_user_token
-from supp_db.queries.questions import (
+from app.repositories.supp_db.queries.questions import (
     ALL_SPACES_QUERY,
     feedback_query,
     public_query,
