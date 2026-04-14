@@ -138,8 +138,8 @@ def show_questions(request: Request):
 @router.get("/webappauth/", response_class=HTMLResponse)
 def webappauth(
     request: Request,
-    webappauthtelid: str | None = Query(default=None),
     web_service: Annotated[WebService, Depends(get_web_service)],
+    webappauthtelid: str | None = Query(default=None),
 ):
     no_params, is_auth = web_service.is_authorized_telegram_user(telegram_id=webappauthtelid)
 
@@ -160,8 +160,8 @@ def webappauth(
 @router.get("/webappanonymviewer/", response_class=HTMLResponse)
 def webapp_anonym_viewer(
     request: Request,
-    webappquestionid: str | None = Query(default=None),
     web_service: Annotated[WebService, Depends(get_web_service)],
+    webappquestionid: str | None = Query(default=None),
 ):
     invalid = web_service.is_invalid_anonym_viewer_request(question_id=webappquestionid)
 
