@@ -3,21 +3,25 @@ from io import BytesIO
 
 import pandas as pd
 from celery import shared_task
-from flask import current_app as app
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 
+from app.core.runtime_config import get_runtime_config_class
 from app.integrations import TelegramGateway
+
+
+CONFIG = get_runtime_config_class()
+
 
 def check_parquet():
     response = {'status': False, 'filename': ''}
 
-    files = os.listdir(app.config['SUPP_PARQUET_DATA_DIR'])
+    files = os.listdir(CONFIG.SUPP_PARQUET_DATA_DIR)
 
     if len(files) == 1:
         ext = files[0].split('.')[-1]
 
-        if app.config['SUPP_PARQUET_FILE_PREFIX'] in files[0] and ext == app.config['SUPP_PARQUET_FILE_EXT']:
+        if CONFIG.SUPP_PARQUET_FILE_PREFIX in files[0] and ext == CONFIG.SUPP_PARQUET_FILE_EXT:
             response['status'] = True
             response['filename'] = files[0]
 
@@ -29,7 +33,7 @@ def get_supp_info(chatid):
     # print("get_supp_info function")
     send_error = False
 
-    telegram = TelegramGateway(token=app.config["TEL_TOKEN"])
+    telegram = TelegramGateway(token=CONFIG.TEL_TOKEN)
 
     try:
         check_resp = check_parquet()
@@ -38,7 +42,7 @@ def get_supp_info(chatid):
 
         if check_resp['status']:
 
-            df = pd.read_parquet(app.config['SUPP_PARQUET_DATA_DIR']+'/'+check_resp['filename'])
+            df = pd.read_parquet(CONFIG.SUPP_PARQUET_DATA_DIR + '/' + check_resp['filename'])
 
             df.drop(['LOGIN_ID', 'STATUS', 'PHONE'], axis= 1 , inplace= True)
 

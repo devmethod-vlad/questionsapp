@@ -3,12 +3,12 @@ import re
 
 import markdown
 from celery import shared_task
-from flask import current_app as app
 from pytz import timezone
 from sqlalchemy import and_, desc
 
+from app.core.runtime_config import get_runtime_config_class
+from app.db.legacy_db import db
 from app.integrations import ConfluenceGateway
-from database import db
 from questionsapp.models import (
     AnswerAttachment,
     AnswerMess,
@@ -23,6 +23,8 @@ from questionsapp.models import (
     Spaces,
     UnionRole,
 )
+
+CONFIG = get_runtime_config_class()
 
 
 east = timezone('Europe/Moscow')
@@ -111,8 +113,8 @@ def _set_public_active(value):
 
 def _create_confluence_client():
     gateway = ConfluenceGateway(
-        base_url=app.config["CONFLUENCE_URL"],
-        bearer_token=app.config["IAC_BOT_TOKEN"],
+        base_url=CONFIG.CONFLUENCE_URL,
+        bearer_token=CONFIG.IAC_BOT_TOKEN,
     )
     return gateway.create_client()
 
@@ -132,7 +134,7 @@ def _get_order_attachments(order_id, user_id):
         attachment = Attachment.query.filter_by(id=attach_item.attachid).first()
         if attachment.public == 1:
             attachments.append(
-                _build_attachment_url(app.config['QUESTION_ATTACHMENTS'], user_id, order_id, attachment.path)
+                _build_attachment_url(CONFIG.QUESTION_ATTACHMENTS, user_id, order_id, attachment.path)
             )
     return attachments
 
@@ -146,7 +148,7 @@ def _get_answer_attachments(answer_id, order_id, user_id):
         attachment = Attachment.query.filter_by(id=answer_attachment.attachid).first()
         if attachment.public == 1:
             attachments.append(
-                _build_attachment_url(app.config['ANSWER_ATTACHMENTS'], user_id, order_id, attachment.path)
+                _build_attachment_url(CONFIG.ANSWER_ATTACHMENTS, user_id, order_id, attachment.path)
             )
     return attachments
 
@@ -195,9 +197,9 @@ def _build_table_header(role_out_flag):
 
 
 def _get_public_page(confluence, space):
-    if app.config['FLASK_ENV'] == 'production':
+    if CONFIG.FLASK_ENV == 'production':
         return confluence.get_page_by_title(space, QUESTION_TITLE, 0, 1, expand='body.storage.value')
-    return confluence.get_page_by_id(app.config['CONFLUENCE_PUBLIC_TESTPAGE_ID'], expand='body.storage.value')
+    return confluence.get_page_by_id(CONFIG.CONFLUENCE_PUBLIC_TESTPAGE_ID, expand='body.storage.value')
 
 
 def _delete_page_attachments(confluence, page_id):

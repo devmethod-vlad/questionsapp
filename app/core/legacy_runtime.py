@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.config import DevConfig, ProdConfig
-from questionsapp.env import get_env_bool
+from app.core.env import get_env_bool
 
 
 def _build_runtime_config() -> dict[str, Any]:
@@ -33,4 +33,3 @@ class LegacyAppProxy:
 
 
 legacy_app = LegacyAppProxy(config=_build_runtime_config())
-

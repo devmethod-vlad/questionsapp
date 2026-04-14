@@ -15,7 +15,7 @@ from urllib.parse import quote_plus
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from questionsapp.env import get_env
+from app.core.env import get_env
 
 
 class Settings(BaseSettings):
