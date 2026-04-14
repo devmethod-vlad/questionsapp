@@ -21,14 +21,14 @@ def exec_action(action, orderid, userid):
         print("exec_action TOKEN: ", os.getenv('PG_CONTAINER'))
         SEND_URL = f'https://api.telegram.org/bot{TOKEN}/sendMessage'
 
-        answerCheckRec = AnswerMess.query.filter_by(orderid=int(orderid)).first()
-        orderCheckRec = OrderMess.query.filter_by(id=int(orderid)).first()
-        orderStatusRec = OrderStatus.query.filter_by(orderid=int(orderid)).first()
-        orderInWorkRec = OrdersInWork.query.filter_by(orderid=int(orderid)).first()
-        orderSpaceRec = OrderSpace.query.filter_by(orderid=int(orderid)).first()
-        checkAnonymOrder = AnonymOrder.query.filter_by(orderid=int(orderid)).first()
-        anonymOrderInfo = AnonymOrderInfo.query.filter_by(orderid=int(orderid)).first()
-        checkRoleRec = UserBaseRole.query.filter(UserBaseRole.userid == int(userid)).first()
+        answerCheckRec = db.session.query(AnswerMess).filter_by(orderid=int(orderid)).first()
+        orderCheckRec = db.session.query(OrderMess).filter_by(id=int(orderid)).first()
+        orderStatusRec = db.session.query(OrderStatus).filter_by(orderid=int(orderid)).first()
+        orderInWorkRec = db.session.query(OrdersInWork).filter_by(orderid=int(orderid)).first()
+        orderSpaceRec = db.session.query(OrderSpace).filter_by(orderid=int(orderid)).first()
+        checkAnonymOrder = db.session.query(AnonymOrder).filter_by(orderid=int(orderid)).first()
+        anonymOrderInfo = db.session.query(AnonymOrderInfo).filter_by(orderid=int(orderid)).first()
+        checkRoleRec = db.session.query(UserBaseRole).filter(UserBaseRole.userid == int(userid)).first()
 
         if action == 'to_trash':
             orderStatusRec.statusid = 5
@@ -42,9 +42,9 @@ def exec_action(action, orderid, userid):
             if answerCheckRec is not None:
                 answerAttachsIds = []
                 answerTelAttachsIds = []
-                answerTelAttachs = AnswerTelegramAttachment.query.filter(
+                answerTelAttachs = db.session.query(AnswerTelegramAttachment).filter(
                     AnswerTelegramAttachment.answerid == answerCheckRec.id).all()
-                answerAttachsRecs = AnswerAttachment.query.filter(
+                answerAttachsRecs = db.session.query(AnswerAttachment).filter(
                     AnswerAttachment.answerid == answerCheckRec.id).all()
                 if answerAttachsRecs is not None:
                     for answAttachsItem in answerAttachsRecs:
@@ -53,17 +53,17 @@ def exec_action(action, orderid, userid):
                     for answTelAtItem in answerTelAttachs:
                         answerTelAttachsIds.append(answTelAtItem.attachid)
                 if not len(answerAttachsIds) == 0:
-                    Attachment.query.filter(Attachment.id.in_(answerAttachsIds)).delete(synchronize_session='fetch')
-                    AnswerAttachment.query.filter(AnswerAttachment.answerid == answerCheckRec.id).delete(
+                    db.session.query(Attachment).filter(Attachment.id.in_(answerAttachsIds)).delete(synchronize_session='fetch')
+                    db.session.query(AnswerAttachment).filter(AnswerAttachment.answerid == answerCheckRec.id).delete(
                         synchronize_session='fetch')
-                    SyncAttachments.query.filter(SyncAttachments.webattachid.in_(answerAttachsIds)).delete(
+                    db.session.query(SyncAttachments).filter(SyncAttachments.webattachid.in_(answerAttachsIds)).delete(
                         synchronize_session='fetch')
                 if not len(answerTelAttachsIds) == 0:
-                    TelegramAttachment.query.filter(TelegramAttachment.id.in_(answerTelAttachsIds)).delete(
+                    db.session.query(TelegramAttachment).filter(TelegramAttachment.id.in_(answerTelAttachsIds)).delete(
                         synchronize_session='fetch')
-                    AnswerTelegramAttachment.query.filter(
+                    db.session.query(AnswerTelegramAttachment).filter(
                         AnswerTelegramAttachment.answerid == answerCheckRec.id).delete(synchronize_session='fetch')
-                    SyncAttachments.query.filter(SyncAttachments.telattachid.in_(answerTelAttachsIds)).delete(
+                    db.session.query(SyncAttachments).filter(SyncAttachments.telattachid.in_(answerTelAttachsIds)).delete(
                         synchronize_session='fetch')
                 db.session.commit()
                 answersUserPart = os.path.join(settings.answer_attachments_dir, str(answerCheckRec.userid))
@@ -74,27 +74,27 @@ def exec_action(action, orderid, userid):
                 except:
                     pass
 
-            orderAttachsRecs = OrderAttachment.query.filter(OrderAttachment.orderid == orderid).all()
+            orderAttachsRecs = db.session.query(OrderAttachment).filter(OrderAttachment.orderid == orderid).all()
             if orderAttachsRecs is not None:
                 orderAttachsIds = []
                 for attItem in orderAttachsRecs:
                     orderAttachsIds.append(attItem.attachid)
                 if not len(orderAttachsIds) == 0:
-                    Attachment.query.filter(Attachment.id.in_(orderAttachsIds)).delete(synchronize_session='fetch')
-                    OrderAttachment.query.filter(OrderAttachment.orderid == orderid).delete(synchronize_session='fetch')
-                    SyncAttachments.query.filter(SyncAttachments.webattachid.in_(orderAttachsIds)).delete(
+                    db.session.query(Attachment).filter(Attachment.id.in_(orderAttachsIds)).delete(synchronize_session='fetch')
+                    db.session.query(OrderAttachment).filter(OrderAttachment.orderid == orderid).delete(synchronize_session='fetch')
+                    db.session.query(SyncAttachments).filter(SyncAttachments.webattachid.in_(orderAttachsIds)).delete(
                         synchronize_session='fetch')
-            orderTelAttachsRecs = OrderTelegramAttachment.query.filter(OrderTelegramAttachment.orderid == orderid).all()
+            orderTelAttachsRecs = db.session.query(OrderTelegramAttachment).filter(OrderTelegramAttachment.orderid == orderid).all()
             if orderTelAttachsRecs is not None:
                 orderTelAttachsIds = []
                 for attItem in orderTelAttachsRecs:
                     orderTelAttachsIds.append(attItem.attachid)
                 if not len(orderTelAttachsIds) == 0:
-                    TelegramAttachment.query.filter(TelegramAttachment.id.in_(orderTelAttachsIds)).delete(
+                    db.session.query(TelegramAttachment).filter(TelegramAttachment.id.in_(orderTelAttachsIds)).delete(
                         synchronize_session='fetch')
-                    OrderTelegramAttachment.query.filter(OrderAttachment.orderid == orderid).delete(
+                    db.session.query(OrderTelegramAttachment).filter(OrderAttachment.orderid == orderid).delete(
                         synchronize_session='fetch')
-                    SyncAttachments.query.filter(SyncAttachments.telattachid.in_(orderTelAttachsIds)).delete(
+                    db.session.query(SyncAttachments).filter(SyncAttachments.telattachid.in_(orderTelAttachsIds)).delete(
                         synchronize_session='fetch')
             db.session.commit()
             ordersUserPart = os.path.join(settings.question_attachments_dir, str(orderCheckRec.userid))
@@ -103,10 +103,10 @@ def exec_action(action, orderid, userid):
                 shutil.rmtree(orderPathTodelete)
             except:
                 pass
-            OrderMess.query.filter(OrderMess.id == int(orderid)).delete(synchronize_session='fetch')
-            AnswerMess.query.filter(AnswerMess.orderid == int(orderid)).delete(synchronize_session='fetch')
-            OrderStatus.query.filter(OrderStatus.orderid == int(orderid)).delete(synchronize_session='fetch')
-            OrdersInWork.query.filter(OrdersInWork.orderid == int(orderid)).delete(synchronize_session='fetch')
+            db.session.query(OrderMess).filter(OrderMess.id == int(orderid)).delete(synchronize_session='fetch')
+            db.session.query(AnswerMess).filter(AnswerMess.orderid == int(orderid)).delete(synchronize_session='fetch')
+            db.session.query(OrderStatus).filter(OrderStatus.orderid == int(orderid)).delete(synchronize_session='fetch')
+            db.session.query(OrdersInWork).filter(OrdersInWork.orderid == int(orderid)).delete(synchronize_session='fetch')
             db.session.commit()
             return {'status': 'ok'}
         elif action == 'from_trash':
@@ -154,7 +154,7 @@ def exec_action(action, orderid, userid):
                                 print(str(e))
                 else:
 
-                    check_telegram_info = UserTelegramInfo.query.filter_by(userid=orderCheckRec.userid).first()
+                    check_telegram_info = db.session.query(UserTelegramInfo).filter_by(userid=orderCheckRec.userid).first()
 
                     if check_telegram_info is not None:
                         if True:
@@ -230,7 +230,7 @@ def exec_action(action, orderid, userid):
                             print(str(e))
 
             else:
-                check_tel_info = UserTelegramInfo.query.filter_by(userid=orderCheckRec.userid).first()
+                check_tel_info = db.session.query(UserTelegramInfo).filter_by(userid=orderCheckRec.userid).first()
 
                 if check_tel_info is not None:
 
@@ -270,7 +270,7 @@ def exec_action(action, orderid, userid):
             db.session.commit()
             sendTelegramNotification = 'not_sent'
             if answerCheckRec:
-                checkTelegramInfo = UserTelegramInfo.query.filter_by(userid=answerCheckRec.userid).first()
+                checkTelegramInfo = db.session.query(UserTelegramInfo).filter_by(userid=answerCheckRec.userid).first()
                 if checkTelegramInfo:
                     if True:
                         sendMessFlag = True
@@ -297,12 +297,12 @@ def exec_action(action, orderid, userid):
             return {'status': 'ok'}
 
         elif action == 'public':
-            appConfRec = AppConfig.query.order_by(desc('created_at')).limit(1).first()
+            appConfRec = db.session.query(AppConfig).order_by(desc('created_at')).limit(1).first()
 
             if appConfRec.ispublicactive == 1:
                 return {'status': 'publicactive'}
             else:
-                checkPublicOrder = OrderPublic.query.filter_by(orderid=int(orderid)).first()
+                checkPublicOrder = db.session.query(OrderPublic).filter_by(orderid=int(orderid)).first()
                 if checkPublicOrder:
                     db.session.delete(checkPublicOrder)
                     db.session.commit()
@@ -318,12 +318,12 @@ def exec_action(action, orderid, userid):
                 return {'status': 'ok'}
 
         elif action == 'from_public':
-            appConfRec = AppConfig.query.order_by(desc('created_at')).limit(1).first()
+            appConfRec = db.session.query(AppConfig).order_by(desc('created_at')).limit(1).first()
 
             if appConfRec.ispublicactive == 1:
                 return {'status': 'publicactive'}
             else:
-                checkPublicOrder = OrderPublic.query.filter_by(orderid=int(orderid)).first()
+                checkPublicOrder = db.session.query(OrderPublic).filter_by(orderid=int(orderid)).first()
                 if checkPublicOrder:
                     db.session.delete(checkPublicOrder)
                     db.session.commit()

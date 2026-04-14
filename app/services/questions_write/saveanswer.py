@@ -28,19 +28,19 @@ def save_answer(params):
 
             new_flag = 0
 
-            check_order = OrderMess.query.filter_by(id=int(orderid)).first()
+            check_order = db.session.query(OrderMess).filter_by(id=int(orderid)).first()
 
-            check_author_userrole = UserBaseRole.query.filter_by(userid=int(userid)).first()
+            check_author_userrole = db.session.query(UserBaseRole).filter_by(userid=int(userid)).first()
 
             author_user_role = get_role(check_author_userrole.roleid)
 
-            check_answer = AnswerMess.query.filter(AnswerMess.orderid == int(orderid)).first()
+            check_answer = db.session.query(AnswerMess).filter(AnswerMess.orderid == int(orderid)).first()
 
-            check_inwork = OrdersInWork.query.filter(OrdersInWork.orderid == int(orderid)).first()
+            check_inwork = db.session.query(OrdersInWork).filter(OrdersInWork.orderid == int(orderid)).first()
 
-            order_status_rec = OrderStatus.query.filter(OrderStatus.orderid == int(orderid)).first()
+            order_status_rec = db.session.query(OrderStatus).filter(OrderStatus.orderid == int(orderid)).first()
 
-            order_space_rec = OrderSpace.query.filter_by(orderid=int(orderid)).first()
+            order_space_rec = db.session.query(OrderSpace).filter_by(orderid=int(orderid)).first()
 
             if check_answer is None:
                 new_flag = 1
@@ -81,7 +81,7 @@ def save_answer(params):
                     check_answer.text = message
                     db.session.commit()
 
-            answer_user_telinfo = UserTelegramInfo.query.filter_by(userid=int(userid)).first()
+            answer_user_telinfo = db.session.query(UserTelegramInfo).filter_by(userid=int(userid)).first()
 
             if answer_user_telinfo is not None:
                 answer_user_telid = answer_user_telinfo.tlgmid
@@ -91,7 +91,7 @@ def save_answer(params):
             if len(uploaded_files) == 0:
                 fileflag = 'notexist'
             else:
-                app_conf_rec = AppConfig.query.first()
+                app_conf_rec = db.session.query(AppConfig).first()
 
                 fileflag = 'exist'
 
@@ -145,8 +145,8 @@ def save_answer(params):
 
             attachments = []
 
-            for at_item in AnswerAttachment.query.filter(AnswerAttachment.answerid == answer_id).all():
-                attach_rec = Attachment.query.filter(Attachment.id == at_item.attachid).first()
+            for at_item in db.session.query(AnswerAttachment).filter(AnswerAttachment.answerid == answer_id).all():
+                attach_rec = db.session.query(Attachment).filter(Attachment.id == at_item.attachid).first()
                 attachments.append(
                     {'type': attach_rec.type, 'path': attach_rec.path, 'created_at': at_item.created_at,
                      'attachid': attach_rec.id})
@@ -157,11 +157,11 @@ def save_answer(params):
 
             send_telid = ''
 
-            check_anonym_quest = AnonymOrder.query.filter_by(orderid=int(orderid)).first()
+            check_anonym_quest = db.session.query(AnonymOrder).filter_by(orderid=int(orderid)).first()
 
             if check_anonym_quest is not None:
 
-                anon_quest_info = AnonymOrderInfo.query.filter_by(orderid=int(orderid)).first()
+                anon_quest_info = db.session.query(AnonymOrderInfo).filter_by(orderid=int(orderid)).first()
 
                 if new_flag == 1:
                     message = '✅ <b>На ваш вопрос </b><em>...' + check_order.text[0:20] + '...</em><b> был получен ответ! Вы можете посмотреть содержание в телеграмме или открыв в веб-версии. Веб-версия может не работать на устройствах со старой версией приложения. В этом случае воспользуйтесь просмотром в телеграмме</b>'
@@ -200,9 +200,9 @@ def save_answer(params):
                         except Exception as e:
                             print(str(e))
             else:
-                check_tel_info = UserTelegramInfo.query.filter_by(userid=check_order.userid).first()
+                check_tel_info = db.session.query(UserTelegramInfo).filter_by(userid=check_order.userid).first()
 
-                check_status = OrderStatus.query.filter_by(orderid=check_order.id).first()
+                check_status = db.session.query(OrderStatus).filter_by(orderid=check_order.id).first()
 
                 if check_tel_info is not None:
                     if True:
