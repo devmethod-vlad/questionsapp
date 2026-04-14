@@ -184,3 +184,13 @@ class DevConfig(Config):
     TEL_FEEDBACK_USERLIST = [298333313]
     NOTIFY_SELF_ORDER = True
     WEB_APP_ORDERSHOWER = "http://127.0.0.1:5000/eduportal/questions/webappanonymviewer/"
+
+
+# Framework-agnostic aliases for migration-safe runtime access.
+# Keep these values co-located with legacy Config while helper modules move
+# away from Flask application context reads.
+BASE_ROLE = Config.BASE_ROLE
+QUESTION_STATUS = Config.QUESTION_STATUS
+NULLSPACE = Config.NULLSPACE
+NULLROLE = Config.NULLROLE
+URL_PREFIX = Config.URL_PREFIX
