@@ -2,28 +2,21 @@
 
 from __future__ import annotations
 
-import os
-
 from celery import Celery
 
-from app.core.runtime_config import get_runtime_config_class
+from app.core.settings import get_settings
 
 
 def _runtime_config_dict() -> dict[str, object]:
-    """Export uppercase config attributes for Celery runtime config."""
+    """Export compatibility runtime config mapping for Celery."""
 
-    config = get_runtime_config_class()
-    return {
-        key: value
-        for key, value in vars(config).items()
-        if key.isupper()
-    }
+    return get_settings().runtime_config_dict()
 
 
 celery = Celery(
     "questionsapp",
-    backend=os.getenv("CELERY_RESULT_BACKEND"),
-    broker=os.getenv("CELERY_BROKER_URL"),
+    backend=get_settings().celery_result_backend,
+    broker=get_settings().celery_broker_url,
 )
 celery.conf.update(_runtime_config_dict())
 celery.autodiscover_tasks(["app.workers.tasks"])

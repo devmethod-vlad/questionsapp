@@ -10,11 +10,11 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-from app.core.config import Config
+from app.core.settings import get_settings
 
 _ENGINE = create_engine(
-    Config.SQLALCHEMY_DATABASE_URI,
-    **Config.SQLALCHEMY_ENGINE_OPTIONS,
+    get_settings().sqlalchemy_database_uri,
+    **get_settings().sqlalchemy_engine_options,
 )
 
 SessionFactory = scoped_session(
