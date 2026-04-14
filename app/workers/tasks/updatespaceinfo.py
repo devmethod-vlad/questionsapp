@@ -15,7 +15,7 @@ from celery.signals import after_setup_logger
 from app.core.constants import NULLSPACE
 from app.core.settings import get_settings
 from app.integrations import ConfluenceGateway
-from app.db.legacy_db import db
+from app.db.engine import SessionFactory
 from app.db.models import (
     Spaces,
     BotSpaces,
@@ -75,7 +75,7 @@ def safe_commit(session: Session) -> None:
         raise
 
 def get_session() -> Session:
-    return db.session
+    return SessionFactory()
 
 # ======================
 # Загрузка внешних данных

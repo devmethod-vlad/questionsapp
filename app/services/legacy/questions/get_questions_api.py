@@ -30,9 +30,9 @@ def get_questions_api_data(
     """
 
     if repository is None:
-        from app.db.legacy_db import db
+        from app.db.engine import SessionFactory
 
-        repository = SqlAlchemyQuestionsReadRepository(db.session)
+        repository = SqlAlchemyQuestionsReadRepository(SessionFactory())
 
     normalized_page, normalized_page_count = _normalize_pagination(page=page, page_count=page_count)
     return repository.get_public_questions(

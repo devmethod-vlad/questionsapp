@@ -1,4 +1,4 @@
-from app.db.legacy_db import db
+from app.db.engine import SessionFactory
 from app.db.models import AppConfig, User, Spaces, OrderMess
 from app.db.models import OrderStatus, OrderSpace, AnonymOrder, AnonymOrderInfo
 from app.db.models import OrderUnionRole
@@ -175,8 +175,8 @@ def save_anonym_question(params):
                         created_question_id = duplicate_question.id
                     else:
                         new_question = OrderMess(userid=check_anonym_user.id, text=question_text)
-                        db.session.add(new_question)
-                        db.session.flush()
+                        SessionFactory().add(new_question)
+                        SessionFactory().flush()
 
                         created_question_id = new_question.id
                         send_new_question_notify = True
@@ -185,14 +185,14 @@ def save_anonym_question(params):
                             orderid=new_question.id,
                             statusid=QUESTION_STATUS['create']['id']
                         )
-                        db.session.add(new_status)
+                        SessionFactory().add(new_status)
 
                         new_space = OrderSpace(orderid=new_question.id, spaceid=space_id)
-                        db.session.add(new_space)
+                        SessionFactory().add(new_space)
 
                         new_anonym_quest = AnonymOrder(orderid=new_question.id, fingerprint=userfingerprintid)
-                        db.session.add(new_anonym_quest)
-                        db.session.flush()
+                        SessionFactory().add(new_anonym_quest)
+                        SessionFactory().flush()
 
                         anonym_quest_info = AnonymOrderInfo(
                             orderid=new_question.id,
@@ -205,16 +205,16 @@ def save_anonym_question(params):
                             muname=muname,
                             speciality=''
                         )
-                        db.session.add(anonym_quest_info)
+                        SessionFactory().add(anonym_quest_info)
 
                         if unionroleid is not None and int(unionroleid) != 0:
                             new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(unionroleid))
-                            db.session.add(new_quest_unionrole)
+                            SessionFactory().add(new_quest_unionrole)
                         else:
                             new_quest_unionrole = OrderUnionRole(orderid=new_question.id, unionroleid=int(NULLROLE['id']))
-                            db.session.add(new_quest_unionrole)
+                            SessionFactory().add(new_quest_unionrole)
 
-                    db.session.commit()
+                    SessionFactory().commit()
 
                     if send_new_question_notify:
                         _send_new_anonym_question_notification(created_question_id, space_title)
@@ -222,7 +222,7 @@ def save_anonym_question(params):
                     return _build_response(created_question_id, question_text)
 
                 except Exception as e:
-                    db.session.rollback()
+                    SessionFactory().rollback()
                     print(str(e))
                     return {'status': 'error', 'error_mess': str(e)}
 

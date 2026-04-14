@@ -5,7 +5,7 @@ from app.db.models import TelegramTempMess
 from app.services.common.telegram import tg_post
 from app.core.constants import EXT_DICT, NULLROLE, NULLSPACE, QUESTION_STATUS
 from app.core.settings import get_settings
-from app.db.legacy_db import db
+from app.db.engine import SessionFactory
 from app.services.legacy.roles.getrole import get_role
 from app.services.files.uploads import UploadLike
 
@@ -56,7 +56,7 @@ def save_answer(params):
                         new_answer = AnswerMess(orderid=int(orderid), userid=int(userid), text=message)
                         answer_userid = int(userid)
 
-                db.session.add(new_answer)
+                SessionFactory().add(new_answer)
 
                 new_status_id = QUESTION_STATUS['received_answer']['id']
 
@@ -65,13 +65,13 @@ def save_answer(params):
                         new_status_id = QUESTION_STATUS['archive']['id']
 
                 order_status_rec.statusid = new_status_id
-                db.session.commit()
+                SessionFactory().commit()
                 answer_id = new_answer.id
                 answer_created_at = new_answer.created_at
 
                 if check_inwork is not None:
-                    db.session.delete(check_inwork)
-                    db.session.commit()
+                    SessionFactory().delete(check_inwork)
+                    SessionFactory().commit()
             else:
                 answer_id = check_answer.id
                 answer_userid = check_answer.userid
@@ -79,7 +79,7 @@ def save_answer(params):
                 if check_answer.text != message:
                     is_answer_text_change = True
                     check_answer.text = message
-                    db.session.commit()
+                    SessionFactory().commit()
 
             answer_user_telinfo = UserTelegramInfo.query.filter_by(userid=int(userid)).first()
 
@@ -137,11 +137,11 @@ def save_answer(params):
                         elif file_ext in EXT_DICT['animExtension']:
                             attach_type = 'animation'
                         new_attach = Attachment(type=attach_type, path=filename, caption='', public=1)
-                        db.session.add(new_attach)
-                        db.session.commit()
+                        SessionFactory().add(new_attach)
+                        SessionFactory().commit()
                         new_answer_attach = AnswerAttachment(attachid=new_attach.id, answerid=answer_id)
-                        db.session.add(new_answer_attach)
-                        db.session.commit()
+                        SessionFactory().add(new_answer_attach)
+                        SessionFactory().commit()
 
             attachments = []
 
@@ -258,8 +258,8 @@ def save_answer(params):
                     messid = send_resp['result']['message_id']
 
                     new_mess = TelegramTempMess(telid=send_telid, messid=str(messid))
-                    db.session.add(new_mess)
-                    db.session.commit()
+                    SessionFactory().add(new_mess)
+                    SessionFactory().commit()
 
             return {'status': 'ok',
                     'info': {'files': {'flag': fileflag}, 'is_answer_new': new_flag, 'orderid': orderid,
@@ -271,6 +271,6 @@ def save_answer(params):
 
 
     # except Exception as e:
-    #     db.session.rollback()
+    #     SessionFactory().rollback()
     #     print(str(e))
     #     return {'status': 'error', 'error_mess': str(e)}
