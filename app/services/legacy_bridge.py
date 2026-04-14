@@ -13,10 +13,6 @@ from typing import Any, Iterator
 from questionsapp.services.attachments.changeatttachpublicity import change_attach_publicity
 from questionsapp.services.attachments.deleteattachment import delete_attachment
 from questionsapp.services.auxillary.telegram import _tg_post
-from app.services.legacy.questions.execaction import exec_action
-from app.services.legacy.questions.saveanonymquestion import save_anonym_question
-from app.services.legacy.questions.savecombine import save_combine
-from app.services.legacy.questions.savequestion import save_question
 from questionsapp.services.questionslist.formquestionslist import find_question_in_list, form_questions_list
 from questionsapp.services.stats.bot.getnewuser import get_newuser_stat
 from questionsapp.services.stats.bot.getphrazestat import get_phraze_stat
@@ -89,17 +85,6 @@ class LegacyServiceAdapter:
 
     @staticmethod
     def save_or_update(action: str, payload: dict[str, Any]):
-        try:
-            get_legacy_flask_app()
-        except LegacyRuntimeUnavailable:
-            return runtime_unavailable_response()
-        with flask_context():
-            if action == "save_question":
-                return as_jsonable(save_question(payload))
-            if action == "save_combine":
-                return as_jsonable(save_combine(payload))
-            if action == "save_anonym_question":
-                return as_jsonable(save_anonym_question(payload))
         return {"status": "error", "error_mess": "WARN: No valid action param"}, 200
 
     @staticmethod
@@ -110,8 +95,6 @@ class LegacyServiceAdapter:
             return runtime_unavailable_response()
         with flask_context():
             action = payload.get("action")
-            if action == "execaction":
-                return as_jsonable(exec_action(payload.get("execute_action"), payload.get("orderid"), payload.get("userid")))
             if action == "changefilepublicity":
                 return as_jsonable(change_attach_publicity(payload.get("attachid"), payload.get("publicflag")))
             if action == "deleteattachment":

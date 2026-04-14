@@ -1,10 +1,10 @@
-from database import db
+from app.db.legacy_db import db
 from questionsapp.models import AppConfig, User, Spaces, OrderMess
 from questionsapp.models import OrderStatus, OrderSpace, AnonymOrder, AnonymOrderInfo
 from questionsapp.models import OrderUnionRole
 from questionsapp.services.auxillary.telegram import _tg_post
 import datetime
-from flask import current_app as app
+from app.core.legacy_runtime import legacy_app as app
 from pytz import timezone
 
 east = timezone('Europe/Moscow')

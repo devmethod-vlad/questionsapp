@@ -1,4 +1,4 @@
-from database import db
+from app.db.legacy_db import db
 import datetime
 import os
 from questionsapp.models import OrderMess, OrderStatus, OrderSpace, Spaces, TelChatInfoSpace, OrderUnionRole
@@ -6,7 +6,7 @@ from questionsapp.models import AppConfig, AnswerMess, UserTelegramInfo, Attachm
 from questionsapp.models import OrderAttachment, SpaceUnionRole, UnionRole, UserBaseRole, SpaceUnionRoleActive
 from questionsapp.models import TelegramTempMess, FeedbackQuestion
 from questionsapp.services.auxillary.telegram import _tg_post
-from flask import current_app as app
+from app.core.legacy_runtime import legacy_app as app
 from pytz import timezone
 from app.services.legacy.roles.getrole import get_role
 from app.services.files.uploads import UploadLike

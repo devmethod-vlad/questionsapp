@@ -123,7 +123,7 @@ class AdminActionsService:
                 "info": "Логин администратора должен состоять как минимум из 4 символов",
             }
 
-        from database import db
+        from app.db.legacy_db import db
 
         try:
             hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
@@ -146,7 +146,7 @@ class AdminActionsService:
         if manual_user is None:
             return {"status": "error", "error_mess": "Admin doesn't exist"}
 
-        from database import db
+        from app.db.legacy_db import db
 
         try:
             hashed = bcrypt.hashpw(adminpass.encode(get_default_format()), bcrypt.gensalt())
@@ -172,7 +172,7 @@ class AdminActionsService:
         if check_role is None:
             return {"status": "error", "error_mess": "WARN: No user role rec"}
 
-        from database import db
+        from app.db.legacy_db import db
 
         check_role.roleid = 1
         db.session.add(check_role)
@@ -199,7 +199,7 @@ class AdminActionsService:
 
         base_roles = get_base_roles()
         if check_role.roleid == int(base_roles["admin"]["id"]):
-            from database import db
+            from app.db.legacy_db import db
 
             check_role.roleid = int(base_roles["redactor"]["id"])
             db.session.commit()
@@ -227,7 +227,7 @@ class AdminActionsService:
         if not payload.get("tokenlifetime") or not payload.get("botname") or not payload.get("uploadsize"):
             return {"status": "params_error", "error_mess": "WARN: No params"}
 
-        from database import db
+        from app.db.legacy_db import db
 
         try:
             config_rec = self.repository.get_app_config()
