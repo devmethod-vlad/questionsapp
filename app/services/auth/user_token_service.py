@@ -8,7 +8,7 @@ import pytz
 
 from app.db.legacy_db import db
 from app.services.auth.user_info_service import set_user_info
-from questionsapp.models import AccessToken, AppConfig
+from app.db.models import AccessToken, AppConfig
 
 LOCAL_TIMEZONE = pytz.timezone("Europe/Moscow")
 

@@ -15,7 +15,7 @@ from celery.signals import after_setup_logger
 from app.core.runtime_config import get_runtime_config_class
 from app.integrations import ConfluenceGateway
 from app.db.legacy_db import db
-from questionsapp.models import (
+from app.db.models import (
     Spaces,
     BotSpaces,
     OrderSpace,

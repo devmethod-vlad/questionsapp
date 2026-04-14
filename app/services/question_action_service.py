@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.legacy.questions.execaction import exec_action
+from app.services.questions_write import exec_action
 
 
 class QuestionActionService:

@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.legacy.questions.saveanonymquestion import save_anonym_question
-from app.services.legacy.questions.savecombine import save_combine
-from app.services.legacy.questions.savequestion import save_question
+from app.services.questions_write import save_anonym_question
+from app.services.questions_write import save_combine
+from app.services.questions_write import save_question
 
 
 class QuestionWriteService:
