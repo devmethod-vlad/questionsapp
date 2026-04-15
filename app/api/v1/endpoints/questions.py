@@ -38,6 +38,8 @@ def questions_api(
         )
     except ValueError:
         return error("Invalid pagination parameters; must be integers.", status_code=400)
+    except Exception:
+        return error("Internal server error while fetching data.", status_code=500)
 
     parsed_page = max(1, int(query.page))
     return paginated_questions(count=total_count, page_count=len(records), page=parsed_page, data=records)
