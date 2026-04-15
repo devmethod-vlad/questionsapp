@@ -6,7 +6,7 @@ from fastapi.responses import PlainTextResponse
 router = APIRouter()
 
 
-@router.get("/test/")
+@router.get("/test/", response_class=PlainTextResponse)
 def test_endpoint() -> PlainTextResponse:
     """Keep legacy smoke test endpoint unchanged."""
 

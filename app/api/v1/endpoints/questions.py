@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, File, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Query, UploadFile
 from fastapi.responses import Response
 
 from app.core.rate_limit import enforce_questions_api_rate_limit
 from app.db.session import RequestSessionContext, get_request_session_context
 from app.responses.builders import error, ok, paginated_questions
-from app.schemas.payloads import QuestionsAPIQuery, SaveOrUpdatePayload
+from app.schemas.payloads import SaveOrUpdatePayload
+from app.schemas.responses import LegacyErrorResponse, QuestionsAPISuccessResponse
 from app.services.admin_service import AdminService
 from app.services.dependencies import get_questions_service
 from app.services.questions_service import QuestionsService
@@ -18,23 +19,34 @@ from app.services.questions_service import QuestionsService
 router = APIRouter()
 
 
-@router.get("/questions_api/", dependencies=[Depends(enforce_questions_api_rate_limit)])
+@router.get(
+    "/questions_api/",
+    dependencies=[Depends(enforce_questions_api_rate_limit)],
+    response_model=QuestionsAPISuccessResponse,
+    responses={
+        400: {"model": LegacyErrorResponse, "description": "Legacy validation error envelope"},
+        429: {"model": LegacyErrorResponse, "description": "Rate limit exceeded"},
+        500: {"model": LegacyErrorResponse, "description": "Internal server error envelope"},
+    },
+)
 def questions_api(
-    query: Annotated[QuestionsAPIQuery, Depends()],
     questions_service: Annotated[QuestionsService, Depends(get_questions_service)],
+    publicorder: str = Query(default="0"),
+    page_count: str = Query(default="100"),
+    page: str = Query(default="1"),
 ):
     try:
         records, total_count = questions_service.get_public_questions(
-            page=query.page,
-            page_count=query.page_count,
-            public_only=(query.publicorder == "1"),
+            page=page,
+            page_count=page_count,
+            public_only=(publicorder == "1"),
         )
     except ValueError:
         return error("Invalid pagination parameters; must be integers.", status_code=400)
     except Exception:
         return error("Internal server error while fetching data.", status_code=500)
 
-    parsed_page = max(1, int(query.page))
+    parsed_page = max(1, int(page))
     return paginated_questions(count=total_count, page_count=len(records), page=parsed_page, data=records)
 
 

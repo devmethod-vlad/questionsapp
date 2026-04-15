@@ -8,6 +8,7 @@ Implements migration steps:
 """
 
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
@@ -33,6 +34,48 @@ if settings.enable_cors:
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        routes=app.routes,
+        description=app.description,
+    )
+
+    for path_item in openapi_schema.get("paths", {}).values():
+        for operation in path_item.values():
+            if not isinstance(operation, dict):
+                continue
+
+            responses = operation.get("responses", {})
+            if "422" in responses:
+                responses.pop("422")
+                responses.setdefault(
+                    "400",
+                    {
+                        "description": "Validation error (legacy envelope)",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/LegacyErrorResponse"},
+                            }
+                        },
+                    },
+                )
+
+    schemas = openapi_schema.get("components", {}).get("schemas", {})
+    schemas.pop("HTTPValidationError", None)
+    schemas.pop("ValidationError", None)
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 @app.get("/health")
