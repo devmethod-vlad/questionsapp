@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
@@ -24,9 +24,9 @@ templates = Jinja2Templates(directory="app/templates")
 settings = get_settings()
 
 
-@router.get("/test/")
-def test_index() -> str:
-    return "Test success!!!"
+@router.get("/test/", response_class=PlainTextResponse, include_in_schema=False)
+def test_index() -> PlainTextResponse:
+    return PlainTextResponse("Test success!!!")
 
 
 def _send_file(directory: str | Path, filename: str) -> FileResponse:
