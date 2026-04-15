@@ -2,23 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Body, Depends, File, UploadFile
 from fastapi.responses import Response
 
 from app.core.rate_limit import enforce_questions_api_rate_limit
 from app.db.session import RequestSessionContext, get_request_session_context
 from app.responses.builders import error, ok, paginated_questions
-from app.schemas.payloads import (
-    BotExcelPayload,
-    QuestionsAPIQuery,
-    QuestionsListPayload,
-    SaveOrUpdatePayload,
-    ServicePayload,
-    SpaceRolesPayload,
-    StatisticPayload,
-)
+from app.schemas.payloads import QuestionsAPIQuery, SaveOrUpdatePayload
 from app.services.admin_service import AdminService
 from app.services.dependencies import get_questions_service
 from app.services.questions_service import QuestionsService
@@ -48,25 +40,28 @@ def questions_api(
 
 @router.post("/questionslist/")
 def questions_list(
-    payload: QuestionsListPayload,
     questions_service: Annotated[QuestionsService, Depends(get_questions_service)],
     _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    payload: dict[str, Any] | None = Body(default=None),
 ):
-    response, status_code = questions_service.get_questions_list(payload.model_dump())
+    request_payload = payload if isinstance(payload, dict) else {}
+    response, status_code = questions_service.get_questions_list(request_payload)
     return ok(response, status_code=status_code)
 
 
 @router.post("/spaceandroles/")
 def space_roles(
-    payload: SpaceRolesPayload,
     session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    payload: dict[str, Any] | None = Body(default=None),
 ):
-    if not payload.action:
+    request_payload = payload if isinstance(payload, dict) else {}
+    action = request_payload.get("action")
+    if not action:
         return error("WARN: No action param")
-    if payload.action != "getrolesbyspace":
+    if action != "getrolesbyspace":
         return error("WARN: No valid action param")
 
-    response, status_code = AdminService.get_space_roles(payload.model_dump(), session=session_context.session)
+    response, status_code = AdminService.get_space_roles(request_payload, session=session_context.session)
     return ok(response, status_code=status_code)
 
 
@@ -92,13 +87,14 @@ async def save_or_update(
 
 @router.post("/service/")
 def service(
-    payload: ServicePayload,
     session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    payload: dict[str, Any] | None = Body(default=None),
 ):
-    if not payload.action:
+    request_payload = payload if isinstance(payload, dict) else {}
+    if not request_payload.get("action"):
         return error("WARN: No action param")
     response, status_code = AdminService.execute_service_action(
-        payload.model_dump(exclude_none=False),
+        request_payload,
         session=session_context.session,
     )
     return ok(response, status_code=status_code)
@@ -106,17 +102,22 @@ def service(
 
 @router.post("/statistic/")
 def statistic(
-    payload: StatisticPayload,
     session_context: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    payload: dict[str, Any] | None = Body(default=None),
 ):
-    if not payload.action:
+    request_payload = payload if isinstance(payload, dict) else {}
+    action = request_payload.get("action")
+    botstatskind = request_payload.get("botstatskind")
+    botimeperiod = request_payload.get("botimeperiod")
+
+    if not action:
         return error("WARN: No action param")
-    if payload.action != "getbotstat":
+    if action != "getbotstat":
         return error("WARN: No valid action param")
-    if not payload.botstatskind or payload.botimeperiod not in (7, 30):
+    if not botstatskind or botimeperiod not in (7, 30):
         return error("WARN: No params")
 
-    response = AdminService.get_statistics(payload.model_dump(), session=session_context.session)
+    response = AdminService.get_statistics(request_payload, session=session_context.session)
     if isinstance(response, Response):
         return response
 
@@ -126,11 +127,12 @@ def statistic(
 
 @router.post("/botexcel/")
 def botexcel(
-    payload: BotExcelPayload,
     _: Annotated[RequestSessionContext, Depends(get_request_session_context)],
+    payload: dict[str, Any] | None = Body(default=None),
 ):
-    if not payload.action or payload.chatid in (None, ""):
+    request_payload = payload if isinstance(payload, dict) else {}
+    if not request_payload.get("action") or request_payload.get("chatid") in (None, ""):
         return error("WARN: No params")
 
-    response, status_code = AdminService.build_bot_excel(payload.model_dump())
+    response, status_code = AdminService.build_bot_excel(request_payload)
     return ok(response, status_code=status_code)
