@@ -28,7 +28,13 @@ class WebService:
         if not question_id:
             return True
 
-        order_id = int(question_id)
+        try:
+            order_id = int(question_id)
+        except (TypeError, ValueError):
+            # Legacy Flask behavior rendered HTML page for invalid/non-numeric
+            # query value instead of escalating to a generic 500 JSON handler.
+            return True
+
         if not self.repository.order_exists(order_id=order_id):
             return True
 
