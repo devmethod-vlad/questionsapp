@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import Response
 
+from app.core.rate_limit import enforce_questions_api_rate_limit
 from app.db.session import RequestSessionContext, get_request_session_context
 from app.responses.builders import error, ok, paginated_questions
 from app.schemas.payloads import (
@@ -27,6 +28,7 @@ router = APIRouter()
 
 @router.get("/questions_api/")
 def questions_api(
+    _: Annotated[None, Depends(enforce_questions_api_rate_limit)],
     query: Annotated[QuestionsAPIQuery, Depends()],
     questions_service: Annotated[QuestionsService, Depends(get_questions_service)],
 ):

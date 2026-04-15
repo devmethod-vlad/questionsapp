@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from app.api.v1.endpoints.questions import router
 from app.core.exceptions import register_exception_handlers
+from app.core.rate_limit import questions_api_limiter
 from app.services.dependencies import get_questions_service
 
 
@@ -42,8 +43,17 @@ def _build_client(service) -> TestClient:
     app = FastAPI()
     register_exception_handlers(app)
     app.include_router(router)
+
+    @app.get("/health")
+    def healthcheck():
+        return {"status": "ok"}
+
     app.dependency_overrides[get_questions_service] = lambda: service
     return TestClient(app)
+
+
+def setup_function() -> None:
+    questions_api_limiter.reset()
 
 
 def test_questions_api_happy_path_returns_paginated_payload():
@@ -94,3 +104,28 @@ def test_questions_api_internal_error_returns_legacy_500_error_message():
         "status": "error",
         "error_mess": "Internal server error while fetching data.",
     }
+
+
+def test_questions_api_rate_limit_allows_60_requests_and_blocks_61st():
+    client = _build_client(_OkService())
+
+    for _ in range(60):
+        response = client.get("/questions_api/", params={"extra_data": ""})
+        assert response.status_code == 200
+
+    response = client.get("/questions_api/", params={"extra_data": ""})
+
+    assert response.status_code == 429
+    assert response.json() == {"detail": "60 per minute"}
+
+
+def test_questions_api_rate_limit_does_not_affect_other_endpoints():
+    client = _build_client(_OkService())
+
+    for _ in range(61):
+        client.get("/questions_api/", params={"extra_data": ""})
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
