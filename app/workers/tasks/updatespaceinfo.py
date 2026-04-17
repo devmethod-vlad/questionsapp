@@ -5,7 +5,7 @@ import logging, sys
 
 import requests
 import pandas as pd
-import cx_Oracle
+import oracledb
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from celery import shared_task
@@ -24,7 +24,7 @@ from app.services.workers.space_info_db import (
     sync_unionroles_supp,
 )
 from app.repositories.supp_db.queries.suppallroles import supp_all_roles
-from app.integrations.oracle.supp_connection import dsn
+from app.integrations.oracle.supp_connection import dsn, initialize_oracle_driver
 
 
 SETTINGS = get_settings()
@@ -63,12 +63,11 @@ def get_session() -> Session:
 def get_supp_roles() -> Dict[int, str]:
     try:
         if SETTINGS.prod:
-            with cx_Oracle.connect(
+            initialize_oracle_driver()
+            with oracledb.connect(
                 user=SETTINGS.etd2_db_username,
                 password=SETTINGS.etd2_db_pass,
                 dsn=dsn,
-                encoding="UTF-8",
-                nencoding="UTF-8",
             ) as con:
                 df = pd.read_sql(supp_all_roles, con=con)
         else:
@@ -180,7 +179,7 @@ def parse_source_rows(
 
 @shared_task(
     bind=True,
-    autoretry_for=(requests.RequestException, cx_Oracle.Error),
+    autoretry_for=(requests.RequestException, oracledb.Error),
     retry_backoff=True,
     max_retries=3,
     acks_late=False,
