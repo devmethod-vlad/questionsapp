@@ -47,7 +47,7 @@ ENV http_proxy='' https_proxy='' HTTP_PROXY='' HTTPS_PROXY=''
 FROM base AS dev
 
 FROM base AS prod
-COPY . .
+COPY config .
 
 FROM prod AS cron
 RUN cp /usr/src/questionsapp/config/root /etc/cron.d/root \

@@ -2,7 +2,7 @@ services:
    questionsapp:
      build:
        context: .
-       dockerfile: config/Dockerfile
+       dockerfile: Dockerfile
        target: dev
        args:
          https_proxy: ${HTTPS_PROXY}
@@ -42,7 +42,7 @@ services:
    questionsapp_celery:
      build:
        context: .
-       dockerfile: config/Dockerfile
+       dockerfile: Dockerfile
        target: dev
        args:
          https_proxy: ${HTTPS_PROXY}
@@ -70,7 +70,7 @@ services:
    questionscron:
      build:
        context: .
-       dockerfile: config/Dockerfile
+       dockerfile: Dockerfile
        target: cron
        args:
          https_proxy: ${HTTPS_PROXY}

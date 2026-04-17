@@ -31,8 +31,8 @@ class AppSettings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
-    app_name: str = "questionsapp-fastapi"
-    app_version: str = "1.0.0"
+    app_name: str = "questionsapp"
+    app_version: str = "0.1.0"
     api_prefix: str = Field(
         default="/eduportal/questions",
         validation_alias=AliasChoices("API_PREFIX", "QUESTIONSAPP_URL_PREFIX"),
