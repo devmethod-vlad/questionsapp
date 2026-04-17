@@ -259,11 +259,10 @@ class AdminLegacyCompatService:
             socks_proxy=settings.tel_socks_proxy,
         )
 
-        env_name = settings.flask_env
         if action == "getfollowersexcel":
             from app.workers.tasks.getfollowers import get_followers_excel
 
-            if env_name == "production":
+            if settings.prod:
                 get_followers_excel.delay(chatid)
             else:
                 get_followers_excel(chatid)
@@ -272,7 +271,7 @@ class AdminLegacyCompatService:
         if action == "getsuppinfo":
             from app.workers.tasks.getsuppinfo import get_supp_info
 
-            if env_name == "production":
+            if settings.prod:
                 get_supp_info.delay(chatid)
             else:
                 get_supp_info(chatid)

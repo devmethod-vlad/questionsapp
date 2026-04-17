@@ -53,8 +53,9 @@ def tg_post(
         session.mount("https://", adapter)
         session.mount("http://", adapter)
 
-        if socks_proxy:
-            session.proxies.update({"http": socks_proxy, "https": socks_proxy})
+        proxy = socks_proxy.strip() if isinstance(socks_proxy, str) else socks_proxy
+        if proxy:
+            session.proxies.update({"http": proxy, "https": proxy})
 
         return session.post(
             url,

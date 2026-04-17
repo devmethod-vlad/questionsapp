@@ -39,7 +39,7 @@ def get_questions_api_data(
         page=normalized_page,
         page_count=normalized_page_count,
         public_only=public_only,
-        url_prefix=settings.url_prefix,
+        url_prefix=settings.api_prefix,
     )
 
 

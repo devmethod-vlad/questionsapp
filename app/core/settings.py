@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import Any
 from urllib.parse import quote_plus
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import (
@@ -33,7 +33,10 @@ class AppSettings(BaseSettings):
 
     app_name: str = "questionsapp-fastapi"
     app_version: str = "1.0.0"
-    api_prefix: str = Field(default="/eduportal/questions")
+    api_prefix: str = Field(
+        default="/eduportal/questions",
+        validation_alias=AliasChoices("API_PREFIX", "QUESTIONSAPP_URL_PREFIX"),
+    )
     enable_cors: bool = True
     cors_allow_origins: list[str] = ["*"]
     cors_allow_methods: list[str] = ["*"]
@@ -74,8 +77,24 @@ class AppSettings(BaseSettings):
 
     questions_attachments: str = Field(validation_alias="QUESTIONS_ATTACHMENTS")
     questions_main_page: str = Field(default="", validation_alias="QUESTIONS_MAIN_PAGE")
-    url_prefix: str = Field(default="/eduportal/questions", validation_alias="QUESTIONSAPP_URL_PREFIX")
     default_format: str = Field(default="UTF-8", validation_alias="DEFAULT_FORMAT")
+
+    rel_js_folder: str = Field(default="static/js/", validation_alias="REL_JS_FOLDER")
+    rel_css_folder: str = Field(default="static/css/", validation_alias="REL_CSS_FOLDER")
+    rel_imgs_src: str = Field(default="static/imgs/", validation_alias="REL_IMGS_SRC")
+    rel_fonts_folder: str = Field(default="static/fonts/", validation_alias="REL_FONTS_FOLDER")
+    rel_main_js_folder: str = Field(default="static/main/js/", validation_alias="REL_MAIN_JS_FOLDER")
+    rel_main_css_folder: str = Field(default="static/main/css/", validation_alias="REL_MAIN_CSS_FOLDER")
+    rel_main_imgs_folder: str = Field(default="static/main/imgs/", validation_alias="REL_MAIN_IMGS_FOLDER")
+    rel_webappauth_js_folder: str = Field(default="static/webappauth/js/", validation_alias="REL_WEBAPPAUTH_JS_FOLDER")
+    rel_webappauth_css_folder: str = Field(default="static/webappauth/css/", validation_alias="REL_WEBAPPAUTH_CSS_FOLDER")
+    rel_webappauth_imgs_folder: str = Field(default="static/webappauth/imgs/", validation_alias="REL_WEBAPPAUTH_IMGS_FOLDER")
+    rel_webappmain_js_folder: str = Field(default="static/webappmain/js/", validation_alias="REL_WEBAPPMAIN_JS_FOLDER")
+    rel_webappmain_css_folder: str = Field(default="static/webappmain/css/", validation_alias="REL_WEBAPPMAIN_CSS_FOLDER")
+    rel_webappmain_imgs_folder: str = Field(default="static/webappmain/imgs/", validation_alias="REL_WEBAPPMAIN_IMGS_FOLDER")
+    rel_wappanonymviewer_js_folder: str = Field(default="static/webappanonymviewer/js/", validation_alias="REL_WAPPANONYMVIEWER_JS_FOLDER")
+    rel_wappanonymviewer_css_folder: str = Field(default="static/webappanonymviewer/css/", validation_alias="REL_WAPPANONYMVIEWER_CSS_FOLDER")
+    rel_wappanonymviewer_imgs_folder: str = Field(default="static/webappanonymviewer/imgs/", validation_alias="REL_WAPPANONYMVIEWER_IMGS_FOLDER")
 
     celery_result_backend: str | None = Field(default=None, validation_alias="CELERY_RESULT_BACKEND")
     celery_broker_url: str | None = Field(default=None, validation_alias="CELERY_BROKER_URL")
@@ -108,9 +127,6 @@ class AppSettings(BaseSettings):
     def tel_send_message_url(self) -> str:
         return f"https://api.telegram.org/bot{self.tel_token}/sendMessage"
 
-    @property
-    def flask_env(self) -> str:
-        return "production" if self.prod else "development"
 
     @property
     def tel_info_list(self) -> list[int]:
@@ -136,7 +152,7 @@ class AppSettings(BaseSettings):
         """Export a compatibility config mapping for Celery/runtime consumers."""
 
         return {
-            "FLASK_ENV": self.flask_env,
+            "FLASK_ENV": "production" if self.prod else "development",
             "PG_USER": self.pg_user,
             "PG_PASS": self.pg_pass,
             "PG_CONTAINER": self.pg_container,
@@ -189,7 +205,7 @@ class AppSettings(BaseSettings):
             "ANSWER_ATTACHMENTS": self.answer_attachments_dir,
             "TEL_SENDMESS_URL": self.tel_send_message_url,
             "QUESTIONS_MAIN_PAGE": self.questions_main_page,
-            "URL_PREFIX": self.url_prefix,
+            "URL_PREFIX": self.api_prefix,
             "BASE_ROLE": BASE_ROLE,
             "QUESTION_STATUS": QUESTION_STATUS,
             "DEFAULT_RENDER_STATUSES": DEFAULT_RENDER_STATUSES,
@@ -216,69 +232,78 @@ class AppSettings(BaseSettings):
     def root_path(self) -> str:
         return os.getcwd()
 
+    def _resolve_root_relative_path(self, rel_path: str) -> str:
+        normalized = rel_path.strip()
+        if not normalized:
+            raise ValueError("Relative static path cannot be empty.")
+        normalized = normalized.replace("\\", "/")
+        if os.path.isabs(normalized):
+            raise ValueError(f"Static path must be relative to root_path: {rel_path!r}")
+        return os.path.join(self.root_path, normalized)
+
     @property
     def js_folder(self) -> str:
-        return os.path.join(self.root_path, "static/js/")
+        return self._resolve_root_relative_path(self.rel_js_folder)
 
     @property
     def css_folder(self) -> str:
-        return os.path.join(self.root_path, "static/css/")
+        return self._resolve_root_relative_path(self.rel_css_folder)
 
     @property
     def imgs_src(self) -> str:
-        return os.path.join(self.root_path, "static/imgs/")
+        return self._resolve_root_relative_path(self.rel_imgs_src)
 
     @property
     def fonts_folder(self) -> str:
-        return os.path.join(self.root_path, "static/fonts/")
+        return self._resolve_root_relative_path(self.rel_fonts_folder)
 
     @property
     def main_js_folder(self) -> str:
-        return os.path.join(self.root_path, "static/main/js/")
+        return self._resolve_root_relative_path(self.rel_main_js_folder)
 
     @property
     def main_css_folder(self) -> str:
-        return os.path.join(self.root_path, "static/main/css/")
+        return self._resolve_root_relative_path(self.rel_main_css_folder)
 
     @property
     def main_imgs_folder(self) -> str:
-        return os.path.join(self.root_path, "static/main/imgs/")
+        return self._resolve_root_relative_path(self.rel_main_imgs_folder)
 
     @property
     def webappauth_js_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappauth/js/")
+        return self._resolve_root_relative_path(self.rel_webappauth_js_folder)
 
     @property
     def webappauth_css_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappauth/css/")
+        return self._resolve_root_relative_path(self.rel_webappauth_css_folder)
 
     @property
     def webappauth_imgs_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappauth/imgs/")
+        return self._resolve_root_relative_path(self.rel_webappauth_imgs_folder)
 
     @property
     def webappmain_js_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappmain/js/")
+        return self._resolve_root_relative_path(self.rel_webappmain_js_folder)
 
     @property
     def webappmain_css_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappmain/css/")
+        return self._resolve_root_relative_path(self.rel_webappmain_css_folder)
 
     @property
     def webappmain_imgs_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappmain/imgs/")
+        return self._resolve_root_relative_path(self.rel_webappmain_imgs_folder)
 
     @property
     def wappanonymviewer_js_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappanonymviewer/js/")
+        return self._resolve_root_relative_path(self.rel_wappanonymviewer_js_folder)
 
     @property
     def wappanonymviewer_css_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappanonymviewer/css/")
+        return self._resolve_root_relative_path(self.rel_wappanonymviewer_css_folder)
 
     @property
     def wappanonymviewer_imgs_folder(self) -> str:
-        return os.path.join(self.root_path, "static/webappanonymviewer/imgs/")
+        return self._resolve_root_relative_path(self.rel_wappanonymviewer_imgs_folder)
 
 
 @lru_cache(maxsize=1)

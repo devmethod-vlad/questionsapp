@@ -62,7 +62,7 @@ def get_session() -> Session:
 
 def get_supp_roles() -> Dict[int, str]:
     try:
-        if SETTINGS.flask_env == "production":
+        if SETTINGS.prod:
             with cx_Oracle.connect(
                 user=SETTINGS.etd2_db_username,
                 password=SETTINGS.etd2_db_pass,
@@ -198,7 +198,7 @@ def update_spaces_info(self) -> Dict[str, Any]:
             active_space_keys,
             rows_with_error,
         ) = parse_source_rows(source_rows)
-        if rows_with_error and SETTINGS.flask_env == "development":
+        if rows_with_error and not SETTINGS.prod:
             logger.warning(
                 LOG_PREFIX + "Ошибки при обработке строк таблицы пространств: "
                 + ", ".join(rows_with_error)
