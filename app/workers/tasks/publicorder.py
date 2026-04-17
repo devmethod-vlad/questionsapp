@@ -172,7 +172,7 @@ def _build_table_header(role_out_flag):
 
 
 def _get_public_page(confluence, space):
-    if SETTINGS.flask_env == 'production':
+    if SETTINGS.prod:
         return confluence.get_page_by_title(space, QUESTION_TITLE, 0, 1, expand='body.storage.value')
     return confluence.get_page_by_id(SETTINGS.confluence_public_testpage_id, expand='body.storage.value')
 
