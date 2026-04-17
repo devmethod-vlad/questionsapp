@@ -19,6 +19,7 @@ services:
        - ${LOGS_DIR_HOST:?err}:${LOGS_DIR_CONTR:?err}
        - ${ATTACH_DIR_HOST:?err}:${ATTACH_DIR_CONTR:?err}
        - ${DATA_DIR_HOST:?err}:${DATA_DIR_CONTR:?err}
+       - uv_cache:/root/.cache/uv
      expose:
        - 8002
      ports:
@@ -37,7 +38,7 @@ services:
        - service-network
      depends_on:
        - questionsapp_celery
-     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8002
+     command: uvicorn app.main:app --host 0.0.0.0 --port 8002
 
    questionsapp_celery:
      build:
@@ -59,6 +60,7 @@ services:
        - ${LOGS_DIR_HOST:?err}:${LOGS_DIR_CONTR:?err}
        - ${ATTACH_DIR_HOST:?err}:${ATTACH_DIR_CONTR:?err}
        - ${DATA_DIR_HOST:?err}:${DATA_DIR_CONTR:?err}
+       - uv_cache:/root/.cache/uv
      restart: always
      env_file:
        - .env
@@ -83,13 +85,17 @@ services:
        - ${LOGS_DIR_HOST:?err}:${LOGS_DIR_CONTR:?err}
        - ${ATTACH_DIR_HOST:?err}:${ATTACH_DIR_CONTR:?err}
        - ${DATA_DIR_HOST:?err}:${DATA_DIR_CONTR:?err}
+       - questionsapp_venv:/usr/src/questionsapp/.venv
+       - uv_cache:/root/.cache/uv
      restart: always
      env_file:
        - .env
      networks:
        - default
        - service-network
-     command: cron -f
+
+volumes:
+  uv_cache:
 
 networks:
   default:
